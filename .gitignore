@@ -1,6 +1,7 @@
+__pycache__/
 .DS_Store
-enrolldata
-completiondata
-graduationdata
-characteristicsdata
-cip_codes
+enrollmentdata/
+completiondata/
+graduationdata/
+characteristicsdata/
+cipdata/

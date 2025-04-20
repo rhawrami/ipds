@@ -1,6 +1,9 @@
 import os
 import re
 import pandas as pd
+from bs4 import BeautifulSoup
+import warnings
+warnings.filterwarnings('ignore', category=UserWarning)
 
 def clean_characteristics(characteristics_dir = 'characteristicsdata'):
     '''cleans institution characteristics data and returns complete characteristics data
@@ -35,12 +38,12 @@ def clean_characteristics(characteristics_dir = 'characteristicsdata'):
     return master_df
 
 
-def clean_enrollment(enroll_dir = 'enrolldata'):
+def clean_enrollment(enrollment_dir = 'enrollmentdata'):
     '''cleans yearly enrollment data and returns complete undergraduate enrollment data
 
-    :enroll_dir:        directory where raw enrollment data is located
+    :enrollment_dir:        directory where raw enrollment data is located
     '''
-    sorted_files = sorted(os.listdir(enroll_dir)) # unnecessary, but helps with error checking
+    sorted_files = sorted(os.listdir(enrollment_dir)) # unnecessary, but helps with error checking
     
     master_df = pd.DataFrame(columns=['unitid', 'totmen', 'totwomen', # total
                                         'wtmen', 'wtwomen', # white
@@ -60,7 +63,7 @@ def clean_enrollment(enroll_dir = 'enrolldata'):
     }
 
     for file in sorted_files:
-        file_path = f'{enroll_dir}/{file}'
+        file_path = f'{enrollment_dir}/{file}'
         df = pd.read_csv(file_path) # read in df
         df = df.rename(str.lower, axis='columns') # some df's have all uppercase, some have all lowercase
         year_num = re.split(r'_|\.', f'{file}')[1]
@@ -166,6 +169,55 @@ def clean_completion(completion_dir = 'completiondata', level = 'bach'):
         
     return master_df
 
+def clean_cip_html(file_path):
+    '''returns dict of CIP subject code:label pairs for a given year's CIP dictionary html.
+    
+    :file_path: string path to CIP data dictionary html
+    '''
+    with open(file_path) as filehandle:
+        soup = BeautifulSoup(filehandle, 'html.parser')
+        rows = soup.find_all('tr', attrs={'bgcolor': ['White', 'Silver']})
+        dat_rows = rows[1:]
+        label_dict = {}
+        for row in dat_rows:
+            cells = row.find_all('td')
+            if len(cells) > 1:
+                label = cells[0].text.strip()
+                val = cells[1].text.strip()
+                if label == 'Totals':
+                    break # end of relevant table
+                else:
+                    label_dict[val] = label
+        return label_dict
+
+
+def clean_cip_data(cip_codes_dir = 'cipdata'):
+    '''cleans yearly CIP data and returns full dataframe
+
+    :cip_codes_dir: directory where raw CIP data is located
+    '''
+    sorted_files = sorted(os.listdir(cip_codes_dir))
+    master_df = pd.DataFrame(columns=['codevalue', 'valuelabel', 'year'])
+
+    for file in sorted_files:
+        file_path = f'{cip_codes_dir}/{file}'
+        year_num = re.split(r'_|\.', f'{file}')[1]
+        ext = re.split(r'_|\.', f'{file}')[2]
+        if ext == 'html':
+            html_dict = clean_cip_html(file_path=file_path)
+            df = pd.DataFrame({'valuelabel' : html_dict.values(),
+                               'codevalue' : html_dict.keys()})
+            df['year'] = int(year_num)
+        else:
+            df = pd.read_excel(file_path, sheet_name='Frequencies', dtype={'codevalue' : 'str'})
+            df = df.query('varname == "CIPCODE" or varname == "Cipcode"').loc[:, ['codevalue', 'valuelabel']]
+            df['year'] = int(year_num)
+        
+        master_df = pd.concat([master_df, df], ignore_index=True)
+        master_df['valuelabel'] = master_df['valuelabel'].str.replace(r'^(\d+)\s-\s', '', regex=True)
+    
+    return master_df
+
 
 def clean_graduation(graduation_dir = 'graduationdata'):
     '''cleans yearly graduation data and returns complete graduation data
@@ -244,6 +296,5 @@ def clean_graduation(graduation_dir = 'graduationdata'):
 
 
 if __name__ == '__main__':
-    df = clean_enrollment()
-    print(df.head(40))
-    
+    df = clean_cip_data()
+    print(df.describe())
