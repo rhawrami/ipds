@@ -3,20 +3,27 @@ import re
 import pandas as pd
 from bs4 import BeautifulSoup
 import warnings
-warnings.filterwarnings('ignore', category=UserWarning)
+import numpy as np
+
+final_names = {
+    'unitid' : 'id', 'instnm' : 'name', 
+    'addr' : 'address', 'stabbr' : 'state', 'webaddr' : 'webaddress', 'longitud' : 'longitude',
+    'codevalue' : 'cipcode'
+}
 
 def clean_characteristics(characteristics_dir = 'characteristicsdata'):
     '''cleans institution characteristics data and returns complete characteristics data
 
     :characteristics_dir:        directory where raw enrollment data is located
     '''
+    warnings.filterwarnings('ignore', category=FutureWarning)
     sorted_files = sorted(os.listdir(characteristics_dir))
 
     master_df = pd.DataFrame(columns=['unitid', 'instnm', 'addr', 'city', 'stabbr', 'zip', 'webaddr', 'longitud', 'latitude'])
 
     dtypes = {
-        'unitid' : 'int', 'instnm' : 'str', 'addr' : 'str', 'city' : 'str', 
-        'stabbr' : 'str', 'zip' : 'str', 'webaddr' : 'str', 'longitud' : 'str', 'latitude' : 'str'
+        'unitid' : int, 'instnm' : str, 'addr' : str, 'city' : str, 
+        'stabbr' : str, 'zip' : str, 'webaddr' : str, 'longitud' : str, 'latitude' : str
     }
     for file in sorted_files:
         file_path = f'{characteristics_dir}/{file}'
@@ -30,27 +37,98 @@ def clean_characteristics(characteristics_dir = 'characteristicsdata'):
             else:
                 filt_col = ['unitid', 'instnm', 'addr', 'city', 'stabbr', 'zip', 'webaddr']
         else:
-            df_filtered = df.loc[:, ['unitid', 'instnm', 'addr', 'city', 'stabbr', 'zip']]
+            filt_col = ['unitid', 'instnm', 'addr', 'city', 'stabbr', 'zip']
+        df_filtered = df.loc[:, filt_col]
         
         df_filtered['year'] = int(year_num)
         master_df = pd.concat([master_df, df_filtered], ignore_index=True)
     
+    master_df = master_df.rename(columns=final_names)
+    return master_df
+
+def clean_admissions(admissions_dir = 'admissionsdata'):
+    '''cleans yearly admissions data and returns complete admissions data
+    
+    :admissions_dir:        directory where raw admissions data is located
+    '''
+    warnings.filterwarnings('ignore', category=FutureWarning)
+    sorted_files = sorted(os.listdir(admissions_dir)) # unnecessary, but helps with error checking
+
+    admissions_base_cols = {'unitid' : 'id', 
+                'applcnm' : 'men_applied', 'applcnw' : 'women_applied', 
+                'admssnm' : 'men_admitted', 'admssnw' : 'women_admitted', 
+                'enrlftm' : 'men_enrolled', 'enrlftw' : 'women_enrolled', 
+                'satpct' : 'share_submit_sat', 'actpct' : 'share_submit_act',                                      
+                'satvr25' : 'sat_rw_25', 'satvr75' : 'sat_rw_50', 
+                'satmt25' : 'sat_math_25', 'satmt75' : 'sat_math_75', 
+                'actcm25' : 'act_comp_25', 'actcm75' : 'act_comp_75',
+                'acten25' : 'act_eng_25', 'acten75' : 'act_eng_75', 
+                'actmt25' : 'act_math_25', 'actmt75' : 'act_math_75'}
+    cols_to_filter = list(admissions_base_cols.keys())
+
+    master_df = pd.DataFrame()
+    
+    for file in sorted_files:
+        file_path = f'{admissions_dir}/{file}'
+        df = pd.read_csv(file_path, low_memory=False) # read in df
+        df = df.rename(str.lower, axis='columns') # some df's have all uppercase, some have all lowercase
+        df.columns = df.columns.str.strip() # some column names have right spaces
+        year_num = re.split(r'_|\.', f'{file}')[1]
+
+        df_filtered = df.loc[:, cols_to_filter] # filter cols
+        df_filtered = df_filtered.rename(columns=admissions_base_cols) # rename cols
+        df_filtered = df_filtered.replace('.', np.nan) # replace missing data with NaN
+        for col in df_filtered.columns:
+            if col == 'id':
+                df_filtered[col] = df_filtered[col].astype(int) # id integer
+            else:
+                df_filtered[col] = df_filtered[col].astype(float) # all other vars are float
+
+        for i in ['men', 'women']:
+            df_filtered[f'accept_rate_{i}'] = np.where(
+            df_filtered[f'{i}_applied'] == 0,
+            np.nan,
+            (df_filtered[f'{i}_admitted'] / df_filtered[f'{i}_applied'] * 100)
+            )
+    
+            df_filtered[f'yield_rate_{i}'] = np.where(
+            df_filtered[f'{i}_admitted'] == 0,
+            np.nan,
+            (df_filtered[f'{i}_enrolled'] / df_filtered[f'{i}_admitted'] * 100)
+            )
+        
+        df_filtered['year'] = int(year_num) # year identifier
+
+        master_df = pd.concat([master_df, df_filtered], ignore_index=True)
+
     return master_df
 
 
-def clean_enrollment(enrollment_dir = 'enrollmentdata'):
-    '''cleans yearly enrollment data and returns complete undergraduate enrollment data
+def clean_enrollment(enrollment_dir = 'enrollmentdata', student_level = 'undergrad'):
+    '''cleans yearly enrollment data and returns complete student enrollment data
 
     :enrollment_dir:        directory where raw enrollment data is located
+    :student_level:        level of enrollment; options include ['undergrad', 'grad']
     '''
+    warnings.filterwarnings('ignore', category=FutureWarning)
     sorted_files = sorted(os.listdir(enrollment_dir)) # unnecessary, but helps with error checking
+
+    grad_rules = [
+        (lambda y: y in [1984,1985], 'line in [11,25,10,24]'),
+        (lambda y: (y == 1986) or (y in range(1990,1999)), 'line in [14,28,9,10,23,24]'),
+        (lambda y: y in [1987,1988,1989], 'line in [14,28]'),
+        (lambda y: y == 1999, 'line in [32,52,16]'),
+        (lambda y: (y in range(2000,2002)) or (y in range(2004,2009)), 'line in [11,25,9,23]'),
+        (lambda y:  y in range(2002,2004), 'line in [12,26]'),
+        (lambda y: y in range(2009,2024), 'line in [11,25]')
+    ]
     
     master_df = pd.DataFrame(columns=['unitid', 'totmen', 'totwomen', # total
                                         'wtmen', 'wtwomen', # white
                                         'bkmen', 'bkwomen', # black
                                         'hspmen', 'hspwomen', # hispanic
                                         'asnmen', 'asnwomen', # asian
-                                        'totmen_share', 'year',
+                                        'totmen_share', 'year', 'studentlevel',
                                         'totwt_share', 'totbk_share', 'tothsp_share', 'totasn_share'])
     
     var_rename_dict = {
@@ -92,33 +170,43 @@ def clean_enrollment(enrollment_dir = 'enrollmentdata'):
                                          'efhispm', 'efhispw', # total Hispanic men, total Hispanic women
                                          'efasiam', 'efasiaw']] # total Asian men, total Asian women
             df_filtered = df_filtered.rename(columns=var_rename_dict)
-        if int(year_num) < 1986:
-            undergrad_query = 'line == 1 or line == 15' # captures total full-time and total part-time undergrads, respectively
-        else:
-            undergrad_query = 'line == 8 or line == 22' # captures total full-time and total part-time undergrads, respectively
-
-        undergrads = df_filtered.query(undergrad_query) # filter data to total undergraduates
         
-        if 'wtmen' not in undergrads.columns:
+        if student_level == 'undergrad':
+            if int(year_num) < 1986:
+                student_query = 'line == 1 or line == 15' # captures total full-time and total part-time undergrads, respectively
+            else:
+                student_query = 'line == 8 or line == 22' 
+        elif student_level == 'grad':
+            for cond,frmt in grad_rules:
+                if cond(int(year_num)):
+                    student_query = frmt # captures full-time and part-time graduate and first-professional students
+                    break
+            else:
+                raise ValueError(f'No formatted rule for year {year_num}')
+        else:
+            ValueError("student_level must be 'undergrad' or 'grad' ")
+
+        students = df_filtered.query(student_query) # filter data to total studentuates
+        
+        if 'wtmen' not in students.columns:
             cols_to_sum = ['totmen', 'totwomen']
         else:
             cols_to_sum = ['totmen', 'totwomen', 'wtmen', 'wtwomen','bkmen', 'bkwomen','hspmen', 'hspwomen','asnmen', 'asnwomen']
-        undergrads_by_inst = undergrads.groupby('unitid')[cols_to_sum].sum() # sum full-time and part-time students by school
-        undergrads_by_inst = undergrads_by_inst.eval('totmen_share = totmen / (totmen + totwomen) * 100').reset_index() # male undergrad share
-        undergrads_by_inst['year'] = int(year_num) # get year marker for each set
+        
+        students_by_inst = students.groupby('unitid')[cols_to_sum].sum() # sum full-time and part-time students by school
+        students_by_inst = students_by_inst.eval('totmen_share = totmen / (totmen + totwomen) * 100').reset_index() # male student share
+        students_by_inst['year'] = int(year_num) # get year marker for each set
+        students_by_inst['studentlevel'] = student_level # get student level identifier
 
-        if 'wtmen' in undergrads_by_inst.columns:
+        if 'wtmen' in students_by_inst.columns:
             for attr in ['wt', 'bk', 'hsp', 'asn']:
                 eval_str = f'tot{attr}_share = ({attr}men + {attr}women) / (totmen + totwomen) * 100' # race share breakdowns
-                undergrads_by_inst = undergrads_by_inst.eval(eval_str)
+                students_by_inst = students_by_inst.eval(eval_str)
 
+        master_df = pd.concat([master_df, students_by_inst], ignore_index=True)
 
-        master_df = pd.concat([master_df, undergrads_by_inst], ignore_index=True)
-
-    characteristics = clean_characteristics()
-    merged_df = pd.merge(characteristics, master_df, on=['unitid', 'year'])
-
-    return merged_df
+    master_df = master_df.rename(columns=final_names)
+    return master_df
 
 
 def clean_completion(completion_dir = 'completiondata', level = 'bach'):
@@ -127,6 +215,7 @@ def clean_completion(completion_dir = 'completiondata', level = 'bach'):
     :completion_dir:        directory where raw completion data is located
     :level:                 level of degree, options include ['assc', 'bach', 'mast', 'doct']
     '''
+    warnings.filterwarnings('ignore', category=FutureWarning)
     sorted_files = sorted(os.listdir(completion_dir)) # unnecessary, but helps with error checking
     master_df = pd.DataFrame(columns=['unitid', 'cipcode', 
                                       'totmen', 'totwomen', 'totmen_share',
@@ -167,7 +256,9 @@ def clean_completion(completion_dir = 'completiondata', level = 'bach'):
         
         master_df = pd.concat([master_df, completions], ignore_index=True)
         
+    master_df = master_df.rename(columns=final_names)
     return master_df
+
 
 def clean_cip_html(file_path):
     '''returns dict of CIP subject code:label pairs for a given year's CIP dictionary html.
@@ -196,6 +287,8 @@ def clean_cip_data(cip_codes_dir = 'cipdata'):
 
     :cip_codes_dir: directory where raw CIP data is located
     '''
+    warnings.filterwarnings('ignore', category=FutureWarning)
+    warnings.filterwarnings('ignore', category=UserWarning)
     sorted_files = sorted(os.listdir(cip_codes_dir))
     master_df = pd.DataFrame(columns=['codevalue', 'valuelabel', 'year'])
 
@@ -216,14 +309,17 @@ def clean_cip_data(cip_codes_dir = 'cipdata'):
         master_df = pd.concat([master_df, df], ignore_index=True)
         master_df['valuelabel'] = master_df['valuelabel'].str.replace(r'^(\d+)\s-\s', '', regex=True)
     
+    master_df = master_df.rename(columns=final_names)
     return master_df
 
 
-def clean_graduation(graduation_dir = 'graduationdata'):
+def clean_graduation(graduation_dir = 'graduationdata', deg_level='bach'):
     '''cleans yearly graduation data and returns complete graduation data
 
     :graduation_dir:        directory where raw completion data is located
+    :deg_level:        degree level; options include ['assc', 'bach']
     '''
+    warnings.filterwarnings('ignore', category=FutureWarning)
     sorted_files = sorted(os.listdir(graduation_dir)) # unnecessary, but helps with error checking
     master_df = pd.DataFrame(columns=['unitid', 'totmen', 'totmen_graduated', 'totwomen','totwomen_graduated', 
                                       'wtmen', 'wtmen_graduated', 'wtwomen', 'wtwomen_graduated', 
@@ -233,7 +329,7 @@ def clean_graduation(graduation_dir = 'graduationdata'):
                                       'gradrate_totmen', 'gradrate_totwomen',
                                       'gradrate_wtmen', 'gradrate_wtwomen', 'gradrate_bkmen',
                                       'gradrate_bkwomen', 'gradrate_hspmen', 'gradrate_hspwomen',
-                                      'gradrate_asnmen', 'gradrate_asnwomen' 'year'])
+                                      'gradrate_asnmen', 'gradrate_asnwomen', 'year', 'deglevel'])
 
     var_rename_dict = {
         'grrace15' : 'totmen', 'grrace16' : 'totwomen',
@@ -266,35 +362,57 @@ def clean_graduation(graduation_dir = 'graduationdata'):
                         'grasiam', 'grasiaw']
         
         df_filtered = df.loc[:, filt_col].rename(columns=var_rename_dict)
+        if deg_level == 'bach':
+            deg_query = '(8 <= grtype <= 9) and (12 <= chrtstat <= 13) and section == 2'
+            denom = 8
+            num = 9
+        elif deg_level == 'assc':
+            deg_query = '(29 <= grtype <= 30) and (12 <= chrtstat <= 13) and section == 4'
+            denom = 29
+            num = 30
+        else:
+            raise  ValueError("deg_level must be 'assc', 'bach', 'mast' or 'doct'")
 
-        grads_bach = df_filtered.query('(8 <= grtype <= 9) and (12 <= chrtstat <= 13) and section == 2')
-        pivoted_grads_bach = grads_bach.pivot(index='unitid', columns='grtype', values=['totmen', 'totwomen', # get cohort and grads
+        grads = df_filtered.query(deg_query)
+        pivoted_grads = grads.pivot(index='unitid', columns='grtype', values=['totmen', 'totwomen', # get cohort and grads
                                                                                         'wtmen', 'wtwomen',
                                                                                         'bkmen', 'bkwomen',
                                                                                         'hspmen', 'hspwomen',
                                                                                         'asnmen', 'asnwomen'])
         for i in ['tot', 'wt', 'bk', 'hsp', 'asn']:
-            pivoted_grads_bach[f'gradrate_{i}men'] = (pivoted_grads_bach[f'{i}men'][9] /    # grad rates
-                                                     pivoted_grads_bach[f'{i}men'][8] * 100)
-            pivoted_grads_bach[f'gradrate_{i}women'] = (pivoted_grads_bach[f'{i}women'][9] / 
-                                                     pivoted_grads_bach[f'{i}women'][8] * 100)
-        pivoted_grads_bach = pivoted_grads_bach.reset_index()
+            pivoted_grads[f'gradrate_{i}men'] = (pivoted_grads[f'{i}men'][num] /    # grad rates
+                                                     pivoted_grads[f'{i}men'][denom] * 100)
+            pivoted_grads[f'gradrate_{i}women'] = (pivoted_grads[f'{i}women'][num] / 
+                                                     pivoted_grads[f'{i}women'][denom] * 100)
+        pivoted_grads = pivoted_grads.reset_index()
 
-        rnm_columns = pivoted_grads_bach.columns.droplevel(1).tolist() # renaming columns
+        rnm_columns = pivoted_grads.columns.droplevel(1).tolist() # renaming columns
         for i in range(len(rnm_columns)):
             if rnm_columns[i] == rnm_columns[i - 1]:
                 rnm_columns[i] = f'{rnm_columns[i]}_graduated'
-        pivoted_grads_bach.columns = rnm_columns
+        pivoted_grads.columns = rnm_columns
         
-        pivoted_grads_bach['year'] = int(year_num) # get year identifiers
+        pivoted_grads['year'] = int(year_num) # get year identifiers
+        pivoted_grads['deglevel'] = deg_level
 
-        master_df = pd.concat([master_df, pivoted_grads_bach], ignore_index=True)
+        master_df = pd.concat([master_df, pivoted_grads], ignore_index=True)
     
+    master_df = master_df.rename(columns=final_names)
     return master_df
         
-
+CLEANERS = {
+    'characteristics' : clean_characteristics,
+    'admissions' : clean_admissions,
+    'enrollment' : clean_enrollment,
+    'completion' : clean_completion,
+    'cip' : clean_cip_data,
+    'graduation' : clean_graduation
+}
 
 
 if __name__ == '__main__':
-    df = clean_cip_data()
-    print(df.describe())
+    df = clean_admissions()
+    print(df.loc[:, ['yield_rate_men', 'yield_rate_women']].describe())
+    print(df.loc[:, ['accept_rate_men', 'accept_rate_women']].describe())
+    print(df.loc[df['accept_rate_men']==np.max(df['accept_rate_men'])])
+    print(df.loc[(df['id'] == 110404)])

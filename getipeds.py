@@ -3,6 +3,7 @@ import os
 import zipfile 
 import time
 import random
+import warnings
 
 DATASETS = {
 
@@ -20,6 +21,15 @@ DATASETS = {
             (lambda y : y == 1999, 'IC99_HD'),
             (lambda y : y == 2000 or y == 2001, 'FA{year}HD'),
             (lambda y : y >= 2002, 'HD{year}')
+        ]
+    },
+
+    'admissions' : {
+        'dir' : 'admissionsdata',
+        'file_prefix' : 'admissions',
+        'format_rules' : [
+            (lambda y: 2001 <= y <= 2013, 'IC{year}'),
+            (lambda y: 2014 <= y <= 2023, 'ADM{year}'), 
         ]
     },
 
@@ -71,14 +81,16 @@ DATASETS = {
 
 }
 
-def scrape_ipeds_data(subject = 'characteristics', year_range = None):
+def scrape_ipeds_data(subject = 'characteristics', year_range = None, see_progress=True):
     '''downloads NCES IPEDS data on specified years for a defined subject.
     
     :subject: string identifying which subject data to download. The subjects available are:
 
-    ['characteristics', 'enrollment', 'completion', 'cip', 'graduation']
+    ['characteristics', 'admissions', 'enrollment', 'completion', 'cip', 'graduation']
 
     - :characteristics: institutional characteristics, like a school's name, address. Certain variables, like a school's longitude and latitude are only available in later years. Available for years 1984-2023.
+
+    - :admissions: Admissions data, like number of applications and acceptances by gender. Available for years 2001-2023.
 
     - :enrollment: fall enrollment by gender and institutional level (e.g., 4-year undergraduate program), with most years including enrollment by race and gender. Available for years 1984-2023.
 
@@ -89,6 +101,8 @@ def scrape_ipeds_data(subject = 'characteristics', year_range = None):
     - :graduation: number of cohorts and graduates by gender, institutional level and graduation measure (e.g., students earning a bachelor's degree within 6 years of entering). Available for years 2000-2023.
 
     :year_range: tuple of year integers (indicates a range), iterable of year integers (indicates group of individual years), or single year to pull data from. Data for 'characteristics', 'enrollment' and 'completion' are available for years 1984-2023, while 'graduation' is available for years 2000-2023. Defaults to all available years for a subject.
+
+    :see_progress: boolean that, when true, prints completion statement for extraction of each year. If false, no messages printed.
 
     example use:
 
@@ -103,6 +117,9 @@ def scrape_ipeds_data(subject = 'characteristics', year_range = None):
         if subject == 'graduation':
             start, end = 2000,2023
             iter_range = range(start, end + 1)      # default for graduation data
+        elif subject == 'admissions':
+            start, end = 2001,2023
+            iter_range = range(start, end + 1)      # default for admissions data
         else:
             start, end = 1984, 2023
             iter_range = range(start, end + 1)      # default for all other data
@@ -146,7 +163,7 @@ def scrape_ipeds_data(subject = 'characteristics', year_range = None):
             print(er)
             continue
         if '404 - File or directory not found' in r.text:
-            print(f'{year} : 404 - File or directory not found')
+            warnings.warn(f'{year} : 404 - File or directory not found')
             continue
         else:
             zipped_file = f'{relevant_dir}/{relevant_prefix}_{year}.zip'
@@ -170,23 +187,27 @@ def scrape_ipeds_data(subject = 'characteristics', year_range = None):
                 os.rename(f'{relevant_dir}/{file_to_extract}', f'{relevant_dir}/{relevant_prefix}_{year}.csv')
                 os.remove(zipped_file)
         
-        print(f'{relevant_prefix} ({year}) pulled and extracted')
-        time.sleep(random.uniform(.5,1.5))       # give gov. servers a short break, sorry NCES!
+        if see_progress:
+            print(f'IPEDS {relevant_prefix.title()} ({year}) pulled and extracted')
+        time.sleep(random.uniform(0,1))       # give gov. servers a short break, sorry NCES!
 
 
 
 
-def scrape_all():
-    '''downloads NCES IPEDS data for all subject options, for all available years
+def scrape_all(see_progress=True):
+    '''downloads NCES IPEDS data for all subject options, for all available years.
     
     downloads data on: 
     - **institutional characteristics** *(1983-2023)*
     - **fall undergraduate enrollment** *(1983-2023)*
     - **completion by subject field** *(1983-2023)*
+    - **CIP subject field codes** *(1983-2023)*
     - **graduation** *(2000-2023)*
 
+    :see_progress: boolean that, prints completion statement for successful extraction per year. If False, no messages printed.
     '''
     scrape_ipeds_data('characteristics')
+    scrape_ipeds_data('admissions')
     scrape_ipeds_data('enrollment')
     scrape_ipeds_data('completion')
     scrape_ipeds_data('cip')
@@ -195,21 +216,23 @@ def scrape_all():
 
 if __name__ == '__main__':
     user_resp = input('''
-                 This script returns NCES school-level data from 1984-2023 (but 2000-2024 for Graduation data) on the following topics:\n
+                 This script returns NCES school-level data from 1984-2023 (but 2000-2023 for Graduation data and 2001-2023 for Admissions data) on the following topics:\n
                  - Characteristics (like school names, addresses, etc.)
+                 - Admissions (like number of acceptances)
                  - Fall Undergraduate Enrollment (by race and gender)
                  - Degree Completions (by subject gender, subject field, and degree level)
                  - Codes for degree completions and their corresponding subject fields
                  - Graduation Rates (by gender, race and level)\n
                  You have the option to selectively choose one of the five sections, or download all of them. Please
                  select and return one of the following strings:\n
-                 [ALL, CHARACTERISTICS, ENROLLMENT, COMPLETION, CIP, GRADUATION]\n
+                 [ALL, CHARACTERISTICS, ADMISSIONS, ENROLLMENT, COMPLETION, CIP, GRADUATION]\n
                  The following data, in CSV format, will be downloaded locally onto a relevant named directory. Thanks!\n
                 ENTER RESPONSE:''').lower()
     
     resp_dict = {
         'all' : scrape_all,
         'characteristics' : scrape_ipeds_data,
+        'admissions' : scrape_ipeds_data,
         'enrollment' : scrape_ipeds_data,
         'completion' : scrape_ipeds_data,
         'cip' : scrape_ipeds_data,
@@ -218,7 +241,7 @@ if __name__ == '__main__':
 
     if user_resp not in resp_dict.keys():
         raise ValueError('''Response option is not recognized. Please select from the following option:\n
-                         [ALL, CHARACTERISTICS, ENROLLMENT, COMPLETION, GRADUATION]''')
+                         [ALL, CHARACTERISTICS, ADMISSIONS, ENROLLMENT, COMPLETION, CIP, GRADUATION]''')
     else:
         print(f'OPTION SELECTED : {user_resp.upper()}')
         if user_resp == 'all':
