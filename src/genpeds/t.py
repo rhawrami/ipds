@@ -1,9 +1,11 @@
-import requests
-import os
-import zipfile 
+import concurrent.futures
 import time
 import random
+import requests
+import zipfile
+import os
 import warnings
+
 
 DATASETS = {
 
@@ -81,7 +83,126 @@ DATASETS = {
 
 }
 
-def scrape_ipeds_data(subject = 'characteristics', year_range = None, see_progress=True):
+
+def download_year(year, subject_info, subject, download_year):
+    """Download data for a specific year and subject"""
+    relevant_dir = subject_info['dir']
+    relevant_prefix = subject_info['file_prefix']
+    
+    lag0, lag1, lead1 = year-1900, year-1901, year-1899  # needed for some years
+    
+    # Find the correct format rule
+    for cond, frmt in subject_info['format_rules']:
+        if cond(year):
+            yr_format = frmt.format(year=year, 
+                                    lag0=str(lag0), 
+                                    lag1=str(lag1), 
+                                    lead1=str(lead1))
+            break
+    else:
+        raise ValueError(f'No formatted rule for year {year}')
+    
+    # Use different templates based on subject
+    file_template = 'https://nces.ed.gov/ipeds/datacenter/data/{}.zip'
+    file_template_cip = 'https://nces.ed.gov/ipeds/datacenter/data/{}_Dict.zip'  # cip dictionaries
+    
+    if subject == 'cip':
+        file_name = file_template_cip.format(yr_format)
+    else:
+        file_name = file_template.format(yr_format)  # get file name for requests GET
+    
+    try:
+        r = requests.get(file_name)  # try request
+    except requests.HTTPError as er:
+        return f"Year {year}: Error - {str(er)}"
+        
+    if '404 - File or directory not found' in r.text:
+        return f"Year {year}: 404 - File not found"
+    
+    zipped_file = f'{relevant_dir}/{relevant_prefix}_{year}.zip'
+    open(zipped_file, 'wb').write(r.content)
+    
+    with zipfile.ZipFile(zipped_file, 'r') as zfile:
+        if subject == 'cip':
+            file_to_extract = file_name.split('/')[-1].replace('_Dict.zip', '').lower()
+            for ext in ['.html', '.xls', '.xlsx']:  # diff file formats, try each one
+                try:
+                    zfile.extract(file_to_extract + ext, relevant_dir)
+                    os.rename(f'{relevant_dir}/{file_to_extract}{ext}', f'{relevant_dir}/cipcodes_{year}' + ext)
+                    os.remove(zipped_file)
+                    break
+                except KeyError:
+                    continue
+        else:
+            file_to_extract = file_name.split('/')[-1].replace('.zip', '').lower() + '.csv'
+            zfile.extract(file_to_extract, relevant_dir)
+            # remove & remove zipped file
+            os.rename(f'{relevant_dir}/{file_to_extract}', f'{relevant_dir}/{relevant_prefix}_{year}.csv')
+            os.remove(zipped_file)
+    
+    return f"Year {year}: Successfully downloaded and extracted"
+
+def scrape_ipeds_data(subject='characteristics', year_range=None, see_progress=True, max_workers=5):
+    '''downloads NCES IPEDS data on specified years for a defined subject with parallel processing.
+    
+    :subject: string identifying which subject data to download. Available subjects:
+      ['characteristics', 'admissions', 'enrollment', 'completion', 'cip', 'graduation']
+    
+    :year_range: tuple of year integers (range), iterable of year integers, or single year
+    
+    :see_progress: boolean that, when true, prints completion statement for each year
+    
+    :max_workers: maximum number of parallel downloads to run simultaneously
+    '''
+    subject_info = DATASETS[subject]  # get relevant info based on data
+    relevant_dir = subject_info['dir']
+    os.makedirs(subject_info['dir'], exist_ok=True)  # make dir for downloaded files
+    
+    # Determine the years to download
+    if not year_range:
+        if subject == 'graduation':
+            start, end = 2000, 2023
+            iter_range = range(start, end + 1)  # default for graduation data
+        elif subject == 'admissions':
+            start, end = 2001, 2023
+            iter_range = range(start, end + 1)  # default for admissions data
+        else:
+            start, end = 1984, 2023
+            iter_range = range(start, end + 1)  # default for all other data
+    else:
+        if isinstance(year_range, tuple):
+            start, end = year_range
+            iter_range = range(start, end + 1)  # tuple follows regular range
+        elif isinstance(year_range, list):
+            iter_range = year_range  # list remains list
+        elif isinstance(year_range, int):
+            start = year_range
+            iter_range = [start]  # integer becomes one-element list
+        else:
+            raise ValueError('Please enter a tuple range, list of integers, or a single integer')
+    
+    # Use ThreadPoolExecutor for parallel downloads
+    with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
+        # Submit downloads for all years
+        future_to_year = {
+            executor.submit(download_year, year, subject_info, subject, see_progress): year 
+            for year in iter_range
+        }
+        
+        # Process results as they complete
+        for future in concurrent.futures.as_completed(future_to_year):
+            year = future_to_year[future]
+            try:
+                result = future.result()
+                if see_progress:
+                    print(result)
+                # Adding a small random delay between submissions to avoid overwhelming the server
+                time.sleep(random.uniform(0.1, 0.3))
+            except Exception as e:
+                print(f"Year {year} generated an exception: {e}")
+
+
+def scrapeOG_ipeds_data(subject = 'characteristics', year_range = None, see_progress=True):
     '''downloads NCES IPEDS data on specified years for a defined subject.
     
     :subject: string identifying which subject data to download. The subjects available are:
@@ -189,63 +310,13 @@ def scrape_ipeds_data(subject = 'characteristics', year_range = None, see_progre
         
         if see_progress:
             print(f'IPEDS {relevant_prefix.title()} ({year}) pulled and extracted')
-        time.sleep(random.uniform(0,1))       # give gov. servers a short break, sorry NCES!
-
-
-
-
-def scrape_all(see_progress=True):
-    '''downloads NCES IPEDS data for all subject options, for all available years.
-    
-    downloads data on: 
-    - **institutional characteristics** *(1983-2023)*
-    - **fall undergraduate enrollment** *(1983-2023)*
-    - **completion by subject field** *(1983-2023)*
-    - **CIP subject field codes** *(1983-2023)*
-    - **graduation** *(2000-2023)*
-
-    :see_progress: boolean that, prints completion statement for successful extraction per year. If False, no messages printed.
-    '''
-    scrape_ipeds_data('characteristics')
-    scrape_ipeds_data('admissions')
-    scrape_ipeds_data('enrollment')
-    scrape_ipeds_data('completion')
-    scrape_ipeds_data('cip')
-    scrape_ipeds_data('graduation')
+        time.sleep(random.uniform(.1,.3))       # give gov. servers a short break, sorry NCES!
 
 
 if __name__ == '__main__':
-    user_resp = input('''
-                 This script returns NCES school-level data from 1984-2023 (but 2000-2023 for Graduation data and 2001-2023 for Admissions data) on the following topics:\n
-                 - Characteristics (like school names, addresses, etc.)
-                 - Admissions (like number of acceptances)
-                 - Fall Undergraduate Enrollment (by race and gender)
-                 - Degree Completions (by subject gender, subject field, and degree level)
-                 - Codes for degree completions and their corresponding subject fields
-                 - Graduation Rates (by gender, race and level)\n
-                 You have the option to selectively choose one of the five sections, or download all of them. Please
-                 select and return one of the following strings:\n
-                 [ALL, CHARACTERISTICS, ADMISSIONS, ENROLLMENT, COMPLETION, CIP, GRADUATION]\n
-                 The following data, in CSV format, will be downloaded locally onto a relevant named directory. Thanks!\n
-                ENTER RESPONSE:''').lower()
-    
-    resp_dict = {
-        'all' : scrape_all,
-        'characteristics' : scrape_ipeds_data,
-        'admissions' : scrape_ipeds_data,
-        'enrollment' : scrape_ipeds_data,
-        'completion' : scrape_ipeds_data,
-        'cip' : scrape_ipeds_data,
-        'enrollment' : scrape_ipeds_data
-    }
-
-    if user_resp not in resp_dict.keys():
-        raise ValueError('''Response option is not recognized. Please select from the following option:\n
-                         [ALL, CHARACTERISTICS, ADMISSIONS, ENROLLMENT, COMPLETION, CIP, GRADUATION]''')
-    else:
-        print(f'OPTION SELECTED : {user_resp.upper()}')
-        if user_resp == 'all':
-            resp_dict[user_resp]()
-        else:
-            resp_dict[user_resp](user_resp)
-        print(f'END DOWNLOAD STREAM. THANK YOU FOR USING ME :)')
+    time1 = time.time()
+    scrape_ipeds_data('enrollment', (1984,2023), True, 5)
+    scrape_ipeds_data('graduation', (1984,2023), True, 5)
+    #scrapeOG_ipeds_data('enrollment', (1984,2023), True)
+    time2 = time.time()
+    print(f'time alloted: {time2 - time1}')

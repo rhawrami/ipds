@@ -1,4 +1,4 @@
-# college_characteristics
-Higher Ed - School-level characteristics and outcomes
+# GENPEDS
+*A Python API for working with gendered NCES IPEDS Data*
 
 

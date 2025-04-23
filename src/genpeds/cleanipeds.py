@@ -56,15 +56,20 @@ def clean_admissions(admissions_dir = 'admissionsdata'):
 
     admissions_base_cols = {'unitid' : 'id', 
                 'applcnm' : 'men_applied', 'applcnw' : 'women_applied', 
-                'admssnm' : 'men_admitted', 'admssnw' : 'women_admitted', 
-                'enrlftm' : 'men_enrolled', 'enrlftw' : 'women_enrolled', 
+                'admssnm' : 'men_admitted', 'admssnw' : 'women_admitted',
                 'satpct' : 'share_submit_sat', 'actpct' : 'share_submit_act',                                      
                 'satvr25' : 'sat_rw_25', 'satvr75' : 'sat_rw_50', 
                 'satmt25' : 'sat_math_25', 'satmt75' : 'sat_math_75', 
                 'actcm25' : 'act_comp_25', 'actcm75' : 'act_comp_75',
                 'acten25' : 'act_eng_25', 'acten75' : 'act_eng_75', 
                 'actmt25' : 'act_math_25', 'actmt75' : 'act_math_75'}
-    cols_to_filter = list(admissions_base_cols.keys())
+    admissions_early_cols = {**admissions_base_cols, 'enrlftm' : 'men_ft_enrolled', 'enrlftw' : 'women_ft_enrolled',
+                             'enrlptm' : 'men_pt_enrolled', 'enrlptw' : 'women_pt_enrolled'}
+    admissions_mid_cols = {**admissions_base_cols,'enrlm' : 'men_enrolled', 'enrlw' : 'women_enrolled'}
+    admissions_last_cols = {**admissions_mid_cols, 
+                             'applcn' : 'tot_applied', 'admssn' : 'tot_admitted', 'enrlt' : 'tot_enrolled',
+                             'acten50' : 'act_eng_50', 'actmt50' : 'act_math_50', 'actcm50' : 'act_comp_50',
+                             'satvr50' : 'sat_eng_50', 'satmt50' : 'sat_math_50'}
 
     master_df = pd.DataFrame()
     
@@ -74,15 +79,31 @@ def clean_admissions(admissions_dir = 'admissionsdata'):
         df = df.rename(str.lower, axis='columns') # some df's have all uppercase, some have all lowercase
         df.columns = df.columns.str.strip() # some column names have right spaces
         year_num = re.split(r'_|\.', f'{file}')[1]
-
+        
+        if int(year_num) == 2001:
+            cols_dict = admissions_early_cols
+        elif int(year_num) in [2022,2023]:
+            cols_dict = admissions_last_cols
+        else:
+            cols_dict = admissions_mid_cols
+        cols_to_filter = cols_dict.keys()
         df_filtered = df.loc[:, cols_to_filter] # filter cols
-        df_filtered = df_filtered.rename(columns=admissions_base_cols) # rename cols
+        df_filtered = df_filtered.rename(columns=cols_dict) # rename cols
+
         df_filtered = df_filtered.replace('.', np.nan) # replace missing data with NaN
         for col in df_filtered.columns:
             if col == 'id':
                 df_filtered[col] = df_filtered[col].astype(int) # id integer
             else:
                 df_filtered[col] = df_filtered[col].astype(float) # all other vars are float
+
+        if int(year_num) == 2001:
+            df_filtered['men_enrolled'] = df_filtered['men_ft_enrolled'] + df_filtered['men_pt_enrolled']
+            df_filtered['women_enrolled'] = df_filtered['women_ft_enrolled'] + df_filtered['women_pt_enrolled']
+        if 'tot_applied' not in df_filtered.columns:
+            df_filtered['tot_applied'] = df_filtered['men_applied'] + df_filtered['women_applied']
+            df_filtered['tot_admitted'] = df_filtered['men_admitted'] + df_filtered['women_admitted']
+            df_filtered['tot_enrolled'] = df_filtered['men_enrolled'] + df_filtered['women_enrolled']
 
         for i in ['men', 'women']:
             df_filtered[f'accept_rate_{i}'] = np.where(
@@ -98,10 +119,15 @@ def clean_admissions(admissions_dir = 'admissionsdata'):
             )
         
         df_filtered['year'] = int(year_num) # year identifier
+        df_filtered['men_applied_share'] = df_filtered['men_applied'] / df_filtered['tot_applied'] * 100
+        df_filtered['men_admitted_share'] = df_filtered['men_admitted'] / df_filtered['tot_admitted'] * 100
 
         master_df = pd.concat([master_df, df_filtered], ignore_index=True)
+    
+    admissions_df = master_df.drop(columns=['women_applied', 'women_admitted', 'women_enrolled',
+                                            'men_ft_enrolled', 'men_pt_enrolled', 'women_ft_enrolled', 'women_pt_enrolled'])
 
-    return master_df
+    return admissions_df
 
 
 def clean_enrollment(enrollment_dir = 'enrollmentdata', student_level = 'undergrad'):
@@ -414,5 +440,7 @@ if __name__ == '__main__':
     df = clean_admissions()
     print(df.loc[:, ['yield_rate_men', 'yield_rate_women']].describe())
     print(df.loc[:, ['accept_rate_men', 'accept_rate_women']].describe())
-    print(df.loc[df['accept_rate_men']==np.max(df['accept_rate_men'])])
-    print(df.loc[(df['id'] == 110404)])
+    #print(df.loc[df['accept_rate_men']==np.max(df['accept_rate_men'])])
+    #print(df.loc[(df['id'] == 110404)])
+    print(f'\n{df.groupby('year')['yield_rate_men'].describe()}')
+    print(df.columns)

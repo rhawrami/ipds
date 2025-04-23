@@ -26,6 +26,58 @@ class IPDS(ABC):
         '''scrape and clean'''
         pass
 
+
+class Admissions(IPDS):
+    '''IPEDS Admissions'''
+    subject = 'admissions'
+
+    def __init__(self, year_range=(2001,2003)):
+        '''IPEDS Admissions data object.
+        
+        :year_range: tuple of inclusive year integers (indicates a range), iterable of year integers (indicates group of individual years), or single year to pull data from. Data available for years 2001-2023.'''
+        super().__init__(year_range)
+
+    def clean(self, admit_dir='admissionsdata', rm_disk=False):
+        '''cleans downloaded Admissions data, returns Pandas Dataframe.
+        
+        :admit_dir: directory where raw admissions data is located; defaults to default download dir name.
+        :rm_disk: removes downloaded Admissions data from disk.
+        '''
+        df = CLEANERS[self.subject](admit_dir)
+        if rm_disk:
+            shutil.rmtree(admit_dir)
+        return df
+    
+    def run(self, view_progress=False, merge_with_char=False, rm_disk=False):
+        '''scrapes and cleans Admissions data; returns Pandas Dataframe.
+        
+        ## parameters
+
+        - :view_progress: 
+        boolean that, when true, prints admissions statement for extraction of each year. If false, no messages printed.
+
+        - :merge_with_char:
+        boolean that, when true, scrapes institutional Enrollment data and merges with Admissions data. Admissions data will automatically be removed from disk when the Dataframe is instantiated. (To keep the Characteristics data, create a Characteristics object.)
+        
+        - :rm_disk: 
+        removes downloaded Admissions data from disk.
+
+        --------------
+        ## variables returned
+        
+        :id: six-digit (but not always six-digit) integer institutional identifier. While ID's can vary for an institution over time (due to a school splitting into two or merging), filtering by ID is generally more reliable than instution name. Available for all years.
+        :year: survey year integer.
+
+        '''
+        self.scrape(view_progress=view_progress)
+        df = self.clean(rm_disk=rm_disk)
+        if merge_with_char:
+            char_df = Characteristics(year_range=self.year_range).run(view_progress=view_progress, rm_disk=True)
+            df = df.merge(char_df, on=['id', 'year'])
+        return df
+    
+    
+
 class Characteristics(IPDS):
     '''IPEDS Characteristics'''
     subject = 'characteristics'
@@ -40,7 +92,7 @@ class Characteristics(IPDS):
     def clean(self, char_dir='characteristicsdata', rm_disk=False):
         '''cleans downloaded Characteristics data, returns Pandas Dataframe.
         
-        :characteristics_dir: directory where raw enrollment data is located; defaults to default download dir name.
+        :char_dir: directory where raw enrollment data is located; defaults to default download dir name.
         :rm_disk: removes downloaded Characteristics data from disk.
         '''
         df = CLEANERS[self.subject](char_dir)
@@ -139,7 +191,7 @@ class Enrollment(IPDS):
         :year: survey year integer.
         '''
         self.scrape(view_progress=view_progress)
-        df = self.clean(rm_disk=rm_disk)
+        df = self.clean(rm_disk=rm_disk, student_level=student_level)
         if merge_with_char:
             char_df = Characteristics(year_range=self.year_range).run(view_progress=view_progress, rm_disk=True)
             df = df.merge(char_df, on=['id', 'year'])
@@ -307,7 +359,7 @@ class Graduation(IPDS):
         The prefixes, ['wt', 'bk', 'asn', 'hsp'] correspond to measures for the White, Black, Asian and Hispanic population respectively.
         '''
         self.scrape(view_progress=view_progress)
-        df = self.clean(rm_disk=rm_disk)
+        df = self.clean(rm_disk=rm_disk, degree_level=degree_level)
         if merge_with_char:
             char_df = Characteristics(year_range=self.year_range).run(view_progress=view_progress, rm_disk=True)
             df = df.merge(char_df, on=['id', 'year'])
@@ -315,23 +367,31 @@ class Graduation(IPDS):
     
         
 if __name__ == '__main__':
-    #chars = Enrollment(year_range=(2000,2005))
-    #df = chars.run(True, True, False)
-    #print(df.columns)
-    #print(df.head(20))
-    #print(df.head(-20))
-    #print(df['year'].value_counts().sort_index())
+    chars = Enrollment(year_range=(2000,2005))
+    df = chars.run(True, True, False)
+    print(df.columns)
+    print(df.head(20))
+    print(df.head(-20))
+    print(df['year'].value_counts().sort_index())
 
-    grad = Graduation(2000)
-    df2 = grad.run('bach', merge_with_char=True)
-    print(df2.columns)
-    print(df2.head(20))
-    print(df2.head(-20))
-    print(df2['year'].value_counts().sort_index())
+    # #grad = Graduation(2000)
+    # df2 = grad.run('bach', merge_with_char=True)
+    # print(df2.columns)
+    # print(df2.head(20))
+    # print(df2.head(-20))
+    # print(df2['year'].value_counts().sort_index())
 
-    enroll = Enrollment(2000)
-    df3 = enroll.run('undergrad', merge_with_char=True)
-    print(df3.columns)
-    print(df3.head(20))
-    print(df3.head(-20))
-    print(df3['year'].value_counts().sort_index())
+    # enroll = Enrollment(2000)
+    # df3 = enroll.run('undergrad', merge_with_char=True)
+    # print(df3.columns)
+    # print(df3.head(20))
+    # print(df3.head(-20))
+    # print(df3['year'].value_counts().sort_index())
+
+    # admit = Admissions(2002)
+    # df3 = admit.run(merge_with_char=True)
+    # print(df3.columns)
+    # print(df3.head(20))
+    # print(df3.head(-20))
+    # print(df3['year'].value_counts().sort_index())
+    # print(df3.loc[:, ['accept_rate_men', 'accept_rate_women']].describe())
