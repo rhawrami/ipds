@@ -4,82 +4,7 @@ import zipfile
 import time
 import random
 import warnings
-
-DATASETS = {
-
-    'characteristics' : {
-        'dir' : 'characteristicsdata',
-        'file_prefix' : 'characteristics',
-        'format_rules' : [
-            (lambda y : y <= 1985, 'IC{year}'),
-            (lambda y : (1985 < y <= 1989) or (1991 < y <= 1994), 'IC{year}_A'),
-            (lambda y : y == 1990,  'IC90HD'), 
-            (lambda y : y == 1991,  'IC1991_hdr'),
-            (lambda y : 1994 < y < 1997, 'ic{lag0}{lead1}_A'), # check later
-            (lambda y : y == 1997, 'ic9798_HDR'), 
-            (lambda y : y == 1998, 'IC98hdac'),
-            (lambda y : y == 1999, 'IC99_HD'),
-            (lambda y : y == 2000 or y == 2001, 'FA{year}HD'),
-            (lambda y : y >= 2002, 'HD{year}')
-        ]
-    },
-
-    'admissions' : {
-        'dir' : 'admissionsdata',
-        'file_prefix' : 'admissions',
-        'format_rules' : [
-            (lambda y: 2001 <= y <= 2013, 'IC{year}'),
-            (lambda y: 2014 <= y <= 2023, 'ADM{year}'), 
-        ]
-    },
-
-    'enrollment' : {
-        'dir' : 'enrollmentdata',
-        'file_prefix' : 'enrollment',
-        'format_rules' : [
-            (lambda y: y <= 1985, 'EF{year}'),
-            (lambda y: (1985 < y < 1990) or (1991 < y < 1994), 'EF{year}_A'),
-            (lambda y: y == 1990, 'EF90_A'),
-            (lambda y: y == 1991, 'ef1991_A'),
-            (lambda y: y == 1994,  'EF{year}_ANR'),
-            (lambda y: 1994 < y < 2000, 'EF{lag0}_ANR'),
-            (lambda y: y >= 2000, 'EF{year}A')
-        ]
-    },
-
-    'completion' : {
-        'dir' : 'completiondata',
-        'file_prefix' : 'completion',
-        'format_rules' : [
-            (lambda y: y < 1990 or (1991 < y < 1995), 'C{year}_CIP'),
-            (lambda y: y == 1990, 'C8990CIP'),
-            (lambda y: y == 1991, 'c1991_cip'),
-            (lambda y: 1995 <= y < 2000, 'C{lag1}{lag0}_A'),
-            (lambda y: y >= 2000, 'C{year}_A')
-        ]
-    },
-
-    'graduation' : {
-        'dir' : 'graduationdata',
-        'file_prefix' : 'graduation',
-        'format_rules' : [
-            (lambda y: y in range(2000,2024), 'GR{year}')
-        ]
-    },
-
-    'cip' : {
-        'dir' : 'cipdata',
-        'file_prefix' : 'cip',
-        'format_rules' : [
-            (lambda y: (y < 1990) or (1991 < y < 1995), 'C{year}_CIP'),
-            (lambda y: y == 1990, 'C8990CIP'),
-            (lambda y: y == 1991, 'c1991_cip'),
-            (lambda y: 1995 <= y < 2000, 'C{lag1}{lag0}_A'),
-            (lambda y: y >= 2000, 'C{year}_A')
-        ]
-    }
-
-}
+from config import DATASETS
 
 def scrape_ipeds_data(subject = 'characteristics', year_range = None, see_progress=True):
     '''downloads NCES IPEDS data on specified years for a defined subject.
@@ -111,6 +36,7 @@ def scrape_ipeds_data(subject = 'characteristics', year_range = None, see_progre
     subject_info = DATASETS[subject]        # get relevant info based on data
     relevant_dir = subject_info['dir']
     relevant_prefix = subject_info['file_prefix']
+    file_template = subject_info['file_template']
     os.makedirs(subject_info['dir'], exist_ok=True)     # make dir for downloaded files
 
     if not year_range:
@@ -134,9 +60,6 @@ def scrape_ipeds_data(subject = 'characteristics', year_range = None, see_progre
             iter_range = [start]        # integer becomes one-element list
         else:
             raise ValueError('Please enter a tuple range, list of integers, or a single integer')
-    
-    file_template = 'https://nces.ed.gov/ipeds/datacenter/data/{}.zip'
-    file_template_cip = 'https://nces.ed.gov/ipeds/datacenter/data/{}_Dict.zip'     # cip dictionaries
 
     for year in iter_range:
 
@@ -152,10 +75,7 @@ def scrape_ipeds_data(subject = 'characteristics', year_range = None, see_progre
         else:
             raise ValueError(f'No formatted rule for year {year}')
                 
-        if subject == 'cip':
-            file_name = file_template_cip.format(yr_format)
-        else:
-            file_name = file_template.format(yr_format)     # get file name for requests GET
+        file_name = file_template.format(yr_format)   # get file name for requests GET
 
         try:
             r = requests.get(file_name)     # try request

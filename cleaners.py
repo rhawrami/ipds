@@ -69,7 +69,7 @@ def clean_admissions(admissions_dir = 'admissionsdata'):
     admissions_last_cols = {**admissions_mid_cols, 
                              'applcn' : 'tot_applied', 'admssn' : 'tot_admitted', 'enrlt' : 'tot_enrolled',
                              'acten50' : 'act_eng_50', 'actmt50' : 'act_math_50', 'actcm50' : 'act_comp_50',
-                             'satvr50' : 'sat_eng_50', 'satmt50' : 'sat_math_50'}
+                             'satvr50' : 'sat_rw_50', 'satmt50' : 'sat_math_50'}
 
     master_df = pd.DataFrame()
     
@@ -124,6 +124,7 @@ def clean_admissions(admissions_dir = 'admissionsdata'):
 
         master_df = pd.concat([master_df, df_filtered], ignore_index=True)
     
+    # WHEN YOU COME BACK TO THIS, MAKE THIS A CONDTIONAL
     admissions_df = master_df.drop(columns=['women_applied', 'women_admitted', 'women_enrolled',
                                             'men_ft_enrolled', 'men_pt_enrolled', 'women_ft_enrolled', 'women_pt_enrolled'])
 
@@ -210,9 +211,9 @@ def clean_enrollment(enrollment_dir = 'enrollmentdata', student_level = 'undergr
             else:
                 raise ValueError(f'No formatted rule for year {year_num}')
         else:
-            ValueError("student_level must be 'undergrad' or 'grad' ")
+            raise ValueError("student_level must be 'undergrad' or 'grad' ")
 
-        students = df_filtered.query(student_query) # filter data to total studentuates
+        students = df_filtered.query(student_query) # filter data to total students
         
         if 'wtmen' not in students.columns:
             cols_to_sum = ['totmen', 'totwomen']
@@ -437,10 +438,11 @@ CLEANERS = {
 
 
 if __name__ == '__main__':
-    df = clean_admissions()
-    print(df.loc[:, ['yield_rate_men', 'yield_rate_women']].describe())
-    print(df.loc[:, ['accept_rate_men', 'accept_rate_women']].describe())
-    #print(df.loc[df['accept_rate_men']==np.max(df['accept_rate_men'])])
-    #print(df.loc[(df['id'] == 110404)])
-    print(f'\n{df.groupby('year')['yield_rate_men'].describe()}')
+    df = clean_completion()
     print(df.columns)
+    # print(df.loc[:, ['yield_rate_men', 'yield_rate_women']].describe())
+    # print(df.loc[:, ['accept_rate_men', 'accept_rate_women']].describe())
+    # #print(df.loc[df['accept_rate_men']==np.max(df['accept_rate_men'])])
+    # #print(df.loc[(df['id'] == 110404)])
+    # print(f'\n{df.groupby('year')['yield_rate_men'].describe()}')
+    # print(df.columns)

@@ -1,5 +1,5 @@
-from getipeds import scrape_ipeds_data, DATASETS
-from cleanipeds import CLEANERS
+from downloader import scrape_ipeds_data, DATASETS
+from cleaners import CLEANERS
 import shutil
 from abc import ABC, abstractmethod
 
@@ -367,15 +367,15 @@ class Graduation(IPDS):
     
         
 if __name__ == '__main__':
-    chars = Enrollment(year_range=(2000,2005))
-    df = chars.run(True, True, False)
-    print(df.columns)
-    print(df.head(20))
-    print(df.head(-20))
-    print(df['year'].value_counts().sort_index())
+    # chars = Enrollment(year_range=(2000,2005))
+    # df = chars.run('undergrad', True, False, False)
+    # print(df.columns)
+    # print(df.head(20))
+    # print(df.head(-20))
+    # print(df['year'].value_counts().sort_index())
 
-    # #grad = Graduation(2000)
-    # df2 = grad.run('bach', merge_with_char=True)
+    # grad = Graduation(2000)
+    # df2 = grad.run('bach', merge_with_char=False)
     # print(df2.columns)
     # print(df2.head(20))
     # print(df2.head(-20))
