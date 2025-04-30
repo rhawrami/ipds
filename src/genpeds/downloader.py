@@ -5,7 +5,7 @@ import requests
 import zipfile
 import os
 import warnings
-from config import DATASETS
+from genpeds.config import DATASETS
 
 def get_file_endpoint(subject, year):
     '''returns endpoint for a given subject in a given year.
@@ -79,8 +79,13 @@ def scrape_ipeds_data(subject='characteristics', year_range = None, see_progress
     '''downloads NCES IPEDS data on specified years for a defined subject.
     
     :param subject: string identifying which subject data to download. The subjects available are:
+     ['characteristics', 'admissions', 'enrollment', 'completion', 'cip', 'graduation']
+    
+    :param year_range: tuple of year integers (indicates a range), iterable of year integers (indicates group of individual years), or single year to pull data from. Data for 'characteristics', 'enrollment' and 'completion' are available for years 1984-2023, while 'graduation' is available for years 2000-2023. Defaults to all available years for a subject.
 
-    ['characteristics', 'admissions', 'enrollment', 'completion', 'cip', 'graduation']
+    :param see_progress: boolean that, when true, prints completion statement for extraction of each year. If false, no messages printed.
+    
+    ## available data
 
     - :characteristics: institutional characteristics, like a school's name, address. Certain variables, like a school's longitude and latitude are only available in later years. Available for years 1984-2023.
 
@@ -93,11 +98,6 @@ def scrape_ipeds_data(subject='characteristics', year_range = None, see_progress
     - :cip: CIP, or Classification of Instructional Programs, are key-value pairs for subject study fields. CIP's vary by year, and are relevant to identify subject field in completion data. Available for years 1984-2023.
 
     - :graduation: number of cohorts and graduates by gender, institutional level and graduation measure (e.g., students earning a bachelor's degree within 6 years of entering). Available for years 2000-2023.
-
-    
-    :param year_range: tuple of year integers (indicates a range), iterable of year integers (indicates group of individual years), or single year to pull data from. Data for 'characteristics', 'enrollment' and 'completion' are available for years 1984-2023, while 'graduation' is available for years 2000-2023. Defaults to all available years for a subject.
-
-    :param see_progress: boolean that, when true, prints completion statement for extraction of each year. If false, no messages printed.
     '''
     subject = subject.lower()
     relevant_dir = DATASETS[subject]['dir']
@@ -137,5 +137,3 @@ def scrape_ipeds_data(subject='characteristics', year_range = None, see_progress
             except Exception as exc:
                 print(f"Year {yr} generated an exception: {exc}")
 
-
-    

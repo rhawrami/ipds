@@ -1,0 +1,344 @@
+from genpeds.downloader import scrape_ipeds_data
+from genpeds.cleaners import CLEANERS
+from genpeds.config import DATASETS, VARIABLE_DICT
+
+import shutil
+from abc import ABC, abstractmethod
+
+class IPDS(ABC):
+    subject = None
+    
+    def __init__(self, year_range=None):
+        self.year_range = year_range # year range by user
+        self.available_years = DATASETS[self.subject]['years_available']
+        self.variable_dict = VARIABLE_DICT[self.subject]
+
+    def get_description(self):
+        '''returns description of the subject data.'''
+        return DATASETS[self.subject]['description']
+    
+    def get_available_years(self):
+        '''returns available years for a subject's data.'''
+        return self.available_years
+    
+    def get_available_vars(self):
+        '''returns dict of available variables for a subject and their descriptions.'''
+        return self.variable_dict
+
+    def scrape(self, see_progress=False):
+        '''downloads NCES IPEDS data to disk on specified years for a defined subject.
+        
+        :param view_progress::
+            (bool) prints completion statement for extraction of each year's data. If False, no messages printed.
+        '''
+        scrape_ipeds_data(subject=self.subject, year_range=self.year_range, see_progress=see_progress)
+
+    @abstractmethod
+    def clean(self):
+        '''clean the data'''
+        pass
+
+    @abstractmethod
+    def run(self):
+        '''scrape and clean'''
+        pass
+
+
+class Characteristics(IPDS):
+    '''IPEDS Characteristics'''
+    subject = 'characteristics'
+
+    def __init__(self, year_range=None):
+        '''IPEDS Characteristics data.
+        
+        :param year_range::
+          tuple of inclusive year integers (indicates a range), iterable of year integers (indicates group of individual years), or single year to pull data from.
+        
+          ex. year_range=(2002,2012)
+          
+        ### Example use
+        >>> import genpeds as ed
+        >>> chars_2000 = ed.Characteristics(year_range=[2000,2005,2010]) # three years of data
+        >>> chars_2000.get_available_years()
+         (1984,2023) # available years for Characteristics data
+        >>> chars_data = chars_2000.run() # returns Pandas dataframe
+        
+        '''
+        super().__init__(year_range)
+
+    def clean(self, char_dir='characteristicsdata', rm_disk=False):
+        '''cleans downloaded Characteristics data, returns Pandas Dataframe.
+        
+        :param char_dir::
+          directory where raw Charactetistics data is located; defaults to default download dir name.
+        :param rm_disk::
+          removes downloaded Characteristics data from disk, after cleaning.
+        '''
+        df = CLEANERS[self.subject](char_dir)
+        if rm_disk:
+            shutil.rmtree(char_dir)
+        return df
+    
+    def run(self, see_progress=False, rm_disk=False):
+        '''scrapes and cleans IPEDS Characteristics data; returns Pandas Dataframe.
+        
+        :param see_progress::
+        (bool) When True, prints successful download confirmation for each year's data. If False, no messages printed.
+        
+        :param rm_disk::
+        removes downloaded Admissions data from disk after data is cleaned and returned.
+        '''
+        self.scrape(see_progress=see_progress)
+        df = self.clean(rm_disk=rm_disk)
+        return df
+
+
+class Admissions(IPDS):
+    '''IPEDS Admissions'''
+    subject = 'admissions'
+
+    def __init__(self, year_range=None):
+        '''IPEDS Admissions data.
+        
+        :param year_range::
+          tuple of inclusive year integers (indicates a range), iterable of year integers (indicates group of individual years), or single year to pull data from.
+          
+          ex. year_range=(2002,2012)'''
+        super().__init__(year_range)
+
+    def clean(self, admit_dir='admissionsdata', rm_disk=False):
+        '''cleans downloaded Admissions data, returns Pandas Dataframe.
+        
+        :param admit_dir::
+          directory where raw Admissions data is located; defaults to default download dir name.
+        :param rm_disk::
+          removes downloaded Admissions data from disk, after cleaning.
+        '''
+        df = CLEANERS[self.subject](admissions_dir=admit_dir)
+        if rm_disk:
+            shutil.rmtree(admit_dir) # removes data from disk
+        return df
+    
+    def run(self, see_progress=False, merge_with_char=False, rm_disk=False):
+        '''scrapes and cleans Admissions data; returns Pandas Dataframe.
+        
+        :param see_progress::
+        (bool) When True, prints successful download confirmation for each year's data. If False, no messages printed.
+
+        :param merge_with_char::
+        (bool) When True, scrapes Admissions data and merges with Characteristics data (includes variables like school name and address). Characteristics data will automatically be removed from disk when the Dataframe is returned. (To keep the Characteristics data, create a Characteristics object.)
+        
+        :param rm_disk::
+        removes downloaded Admissions data from disk after data is cleaned and returned.
+        '''
+        self.scrape(see_progress=see_progress)
+        df = self.clean(rm_disk=rm_disk)
+        if merge_with_char:
+            char_df = Characteristics(year_range=self.year_range).run(see_progress=see_progress, rm_disk=True)
+            df = df.merge(char_df, on=['id', 'year'])
+        return df
+    
+
+class Enrollment(IPDS):
+    '''IPEDS Enrollment'''
+    subject = 'enrollment'
+
+    def __init__(self, year_range=None):
+        '''IPEDS Enrollment data.
+        
+        :param year_range::
+          tuple of inclusive year integers (indicates a range), iterable of year integers (indicates group of individual years), or single year to pull data from.
+        
+         ex. year_range=(2002,2012)
+        '''
+        super().__init__(year_range)
+
+    def clean(self, student_level='undergrad', enroll_dir='enrollmentdata', rm_disk=False):
+        '''cleans downloaded Fall Enrollment data, returns Pandas Dataframe.
+        
+        :param student_level::
+         level of student enrollment; options include ['undergrad', 'grad'].
+        :param enroll_dir::
+          directory where raw Enrollment data is located; defaults to default download dir name.
+        :param rm_disk::
+          removes downloaded Enrollment data from disk, after cleaning.
+        '''
+        df = CLEANERS[self.subject](enrollment_dir=enroll_dir, student_level=student_level)
+        if rm_disk:
+            shutil.rmtree(enroll_dir)
+        return df
+    
+    def run(self, student_level='undergrad', see_progress=False, merge_with_char=False, rm_disk=False):
+        '''scrapes and cleans IPEDS Fall Enrollment data; returns Pandas Dataframe.
+        
+        :param student_level::
+         level of student enrollment; options include ['undergrad', 'grad'].
+
+        :param see_progress::
+        (bool) When True, prints successful download confirmation for each year's data. If False, no messages printed.
+
+        :param merge_with_char::
+        (bool) When True, scrapes Enrollment data and merges with Characteristics data (includes variables like school name and address). Characteristics data will automatically be removed from disk when the Dataframe is returned. (To keep the Characteristics data, create a Characteristics object.)
+        
+        :param rm_disk::
+        removes downloaded Enrollment data from disk after data is cleaned and returned.
+        '''
+        self.scrape(see_progress=see_progress)
+        df = self.clean(rm_disk=rm_disk, student_level=student_level)
+        if merge_with_char:
+            char_df = Characteristics(year_range=self.year_range).run(see_progress=see_progress, rm_disk=True)
+            df = df.merge(char_df, on=['id', 'year'])
+        return df
+
+
+class Cip(IPDS):
+    '''CIP Codes'''
+    subject = 'cip'
+
+    def __init__(self, year_range=(1984,2023)):
+        '''IPEDS CIP Codes data.
+
+        :param year_range::
+          tuple of inclusive year integers (indicates a range), iterable of year integers (indicates group of individual years), or single year to pull data from.
+
+        CIP, or Classification of Instructional Programs, are key-value pairs for subject study fields. CIP's vary by year, and are relevant to identify subject field in completion data. Available for years 1984-2023. CIP data should be used in conjunction with Completion data.
+        '''
+        super().__init__(year_range)
+
+    def clean(self, cip_dir='cipdata', rm_disk=False):
+        '''cleans downloaded CIP data, returns Pandas Dataframe.
+        
+        :param cip_dir::
+          directory where raw CIP data is located; defaults to default download dir name.
+        :param rm_disk::
+          removes downloaded CIP data from disk, after cleaning.
+        '''
+        df = CLEANERS[self.subject](cip_codes_dir=cip_dir)
+        if rm_disk:
+            shutil.rmtree(cip_dir)
+        return df
+    
+    def run(self, see_progress=False, rm_disk=False):
+        '''scrapes and cleans IPEDS CIP data; returns Pandas DataFrame.
+
+        :param see_progress::
+        (bool) When True, prints successful download confirmation for each year's data. If False, no messages printed.
+        
+        :param rm_disk::
+        removes downloaded Enrollment data from disk after data is cleaned and returned.
+        '''
+        self.scrape(see_progress=see_progress)
+        df = self.clean(rm_disk=rm_disk)
+        return df
+
+
+class Completion(IPDS):
+    '''IPEDS Completion'''
+    subject = 'completion'
+
+    def __init__(self, year_range=(1984,2023)):
+        '''IPEDS Completion data.
+        
+        :param year_range::
+          tuple of inclusive year integers (indicates a range), iterable of year integers (indicates group of individual years), or single year to pull data from.
+        
+         ex. year_range=(2002,2012)
+        '''
+        super().__init__(year_range)
+
+    def clean(self, degree_level='bach', complete_dir='completiondata', rm_disk=False):
+        '''cleans downloaded Completion data, returns Pandas Dataframe.
+        
+        :param degree_level::
+         level of student degree completion; options include ['assc', 'bach', 'mast', 'doct'].
+        :param complete_dir::
+          directory where raw Completion data is located; defaults to default download dir name.
+        :param rm_disk::
+          removes downloaded Completion data from disk, after cleaning.
+        '''
+        df = CLEANERS[self.subject](completion_dir=complete_dir, level=degree_level)
+        if rm_disk:
+            shutil.rmtree(complete_dir)
+        return df
+    
+    def run(self, degree_level='bach', see_progress=False, merge_with_char=False, get_cip_codes=True, rm_disk=False):
+        '''scrapes and cleans IPEDS Completion data; returns Pandas Dataframe.
+        
+        :param degree_level::
+         level of student degree completion; options include ['assc', 'bach', 'mast', 'doct'].
+
+        :param see_progress::
+        (bool) When True, prints successful download confirmation for each year's data. If False, no messages printed.
+
+        :param merge_with_char::
+        (bool) When True, scrapes Completion data and merges with Characteristics data (includes variables like school name and address). Characteristics data will automatically be removed from disk when the Dataframe is returned. (To keep the Characteristics data, create a Characteristics object.)
+        
+        :param get_cip_codes::
+        (bool) When True, scrapes CIP (e.g., field of study) codes/labels and merges with Completion data.
+
+        :param rm_disk::
+        removes downloaded Enrollment data from disk after data is cleaned and returned.
+        '''
+        self.scrape(see_progress=see_progress)
+        df = self.clean(rm_disk=rm_disk, degree_level=degree_level)
+        if merge_with_char:
+            char_df = Characteristics(year_range=self.year_range).run(see_progress=see_progress, rm_disk=True)
+            df = df.merge(char_df, on=['id', 'year'])
+        if get_cip_codes:
+            cip_df = Cip(year_range=self.year_range).run(see_progress=see_progress, rm_disk=True)
+            df = df.merge(cip_df, on=['cip', 'year'])
+        return df
+
+
+class Graduation(IPDS):
+    '''IPEDS Graduation'''
+    subject = 'graduation'
+
+    def __init__(self, year_range=(1984,2023)):
+        '''IPEDS Graduation data.
+        
+        :param year_range::
+          tuple of inclusive year integers (indicates a range), iterable of year integers (indicates group of individual years), or single year to pull data from.
+        
+         ex. year_range=(2002,2012)
+        '''
+        super().__init__(year_range)
+
+    def clean(self, degree_level='bach', grad_dir='graduationdata', rm_disk=False):
+        '''cleans downloaded undergraduate Graduation data, returns Pandas Dataframe.
+        
+        :param degree_level::
+         level of graduate; options include ['assc', 'bach'].
+        :param grad_dir::
+          directory where raw Graduation data is located; defaults to default download dir name.
+        :param rm_disk::
+          removes downloaded Graduation data from disk, after cleaning.
+        '''
+        df = CLEANERS[self.subject](graduation_dir=grad_dir, deg_level=degree_level)
+        if rm_disk:
+            shutil.rmtree(grad_dir)
+        return df
+    
+    def run(self, degree_level='bach', see_progress=False, merge_with_char=False, rm_disk=False):
+        '''scrapes and cleans IPEDS Graduation data; returns Pandas Dataframe.
+        
+        :param degree_level::
+         level of graduate; options include ['assc', 'bach'].
+
+        :param see_progress::
+        (bool) When True, prints successful download confirmation for each year's data. If False, no messages printed.
+        
+        :param merge_with_char::
+        (bool) When True, scrapes Graduation data and merges with Characteristics data (includes variables like school name and address). Characteristics data will automatically be removed from disk when the Dataframe is returned. (To keep the Characteristics data, create a Characteristics object.)
+        
+        :param rm_disk::
+          removes downloaded Graduation data from disk, after cleaning.
+        '''
+        self.scrape(see_progress=see_progress)
+        df = self.clean(rm_disk=rm_disk, degree_level=degree_level)
+        if merge_with_char:
+            char_df = Characteristics(year_range=self.year_range).run(see_progress=see_progress, rm_disk=True)
+            df = df.merge(char_df, on=['id', 'year'])
+        return df
+    
+    

@@ -1,0 +1,6 @@
+[project]
+name = "genpeds"
+description = "Work with gendered NCES IPEDS data: from admissions to graduation"
+version = "1.0"
+authors = [{"name" = "Ravan Hawrami", "email" = "ravanhawrami@gmail.com"}]
+dependencies = ["pandas", "numpy", "openpyxl", "xlrd", "requests", "bs4", "us"]

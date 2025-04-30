@@ -7,9 +7,8 @@ MAIN DATASETS AS OF FIRST RELEASE
 DATASETS = {
 
     'characteristics' : {
-        'description' : '''Institutional characteristics for each school in a given year, including information like
-                            a school's name and address; available for years 1984-2023.''',
-        'years_available' : '1984-2023',
+        'description' : '''Institutional characteristics for each school in a given year, including information like a school's name and address; available for years 1984-2023.''',
+        'years_available' : (1984,2023),
         'dir' : 'characteristicsdata',
         'file_prefix' : 'characteristics',
         'file_template' : 'https://nces.ed.gov/ipeds/datacenter/data/{}.zip', 
@@ -29,9 +28,8 @@ DATASETS = {
     },
 
     'admissions' : {
-        'description' : '''Admissions data for each school in a given year (measured in the Fall), including information like
-                           ACT/SAT scores and acceptance rates by gender; available for years 2001-2023.''',
-        'years_available' : '2001-2023',
+        'description' : '''Admissions data for each school in a given year (measured in the Fall), including information like ACT/SAT scores and acceptance rates by gender; available for years 2001-2023.''',
+        'years_available' : (2001,2023),
         'dir' : 'admissionsdata',
         'file_prefix' : 'admissions',
         'file_template' : 'https://nces.ed.gov/ipeds/datacenter/data/{}.zip',
@@ -42,10 +40,8 @@ DATASETS = {
     },
 
     'enrollment' : {
-        'description' : '''Enrollment data for each school in a given year (measured in the Fall), including information like
-                            the male enrollment share and enrollment by gender and race; available at the undergraduate or graduate
-                            level; available for years 1984-2023.''',
-        'years_available' : '1984-2023',
+        'description' : '''Enrollment data for each school in a given year (measured in the Fall), including information like the male enrollment share and enrollment by gender and race; available at the undergraduate or graduate level; available for years 1984-2023.''',
+        'years_available' : (1984,2023),
         'dir' : 'enrollmentdata',
         'file_prefix' : 'enrollment',
         'file_template' : 'https://nces.ed.gov/ipeds/datacenter/data/{}.zip',
@@ -61,10 +57,8 @@ DATASETS = {
     },
 
     'completion' : {
-        'description' : '''Completion data for each school in a given year by detailed subject field, including information like
-                            the male completion share within a subject (e.g., Economics); available at the Associate, Bachelor's, 
-                            Master's or Doctoral level; available for years 1984-2023.''',
-        'years_available' : '1984-2023',
+        'description' : '''Completion data for each school in a given year by detailed subject field, including information like the male completion share within a subject (e.g., Economics); available at the Associate, Bachelor's, Master's or Doctoral level; available for years 1984-2023.''',
+        'years_available' : (1984,2023),
         'dir' : 'completiondata',
         'file_prefix' : 'completion',
         'file_template' : 'https://nces.ed.gov/ipeds/datacenter/data/{}.zip',
@@ -78,10 +72,8 @@ DATASETS = {
     },
 
     'graduation' : {
-        'description' : '''Graduation data for each school in a given year, including information 
-                            like the graduation rate by gender and race; available at the Associate or
-                            Bachelor's level; available for years 2000-2023.''',
-        'years_available' : '2000-2023',
+        'description' : '''Graduation data for each school in a given year, including information like the graduation rate by gender and race; available at the Associate or Bachelor's level; available for years 2000-2023.''',
+        'years_available' : (2000,2023),
         'dir' : 'graduationdata',
         'file_prefix' : 'graduation',
         'file_template' : 'https://nces.ed.gov/ipeds/datacenter/data/{}.zip',
@@ -91,12 +83,11 @@ DATASETS = {
     },
 
     'cip' : {
-        'description' : '''Provides subject field codes for subjects in a given year; should be used
-                           with Completion data; available for years 1984-2023.''',
-        'years_available' : '1984-2023',
+        'description' : '''Provides subject field codes for subjects in a given year; should be used with Completion data; available for years 1984-2023.''',
+        'years_available' : (1984,2023),
         'dir' : 'cipdata',
         'file_prefix' : 'cip',
-        'file_template' : 'https://nces.ed.gov/ipeds/datacenter/data/{}.zip',
+        'file_template' : 'https://nces.ed.gov/ipeds/datacenter/data/{}_Dict.zip',
         'format_rules' : [
             (lambda y: (y < 1990) or (1991 < y < 1995), 'C{year}_CIP'),
             (lambda y: y == 1990, 'C8990CIP'),
@@ -112,7 +103,7 @@ DATASETS = {
 '''
 VARIABLES AND VARIABLE DESCRIPTIONS INCLUDED IN EACH SUBJECT DATASET
 '''
-VARIABLES = {
+VARIABLE_DICT = {
 
     'characteristics' : {
        'id' : 'Institutional unique identifier ID; though UNITIDs can vary over time due to instutions splitting, this variable is generally consistent for an institution over time.', 
@@ -148,7 +139,6 @@ VARIABLES = {
        'sat_rw_50' : 'SAT reading/writing score (50th percentile).', 
        'sat_math_25' : 'SAT mathematics score (25th percentile).',
        'sat_math_75' : 'SAT mathematics score (75th percentile).', 
-       'sat_rw_50' : 'SAT reading/writing score (50th percentile).', 
        'sat_math_50' : 'SAT mathematics score (50th percentile).',
        'act_comp_25' : 'ACT composite score (25th percentile).', 
        'act_comp_75' : 'ACT composite score (75th percentile).', 
@@ -192,6 +182,13 @@ VARIABLES = {
         'deglevel' : "Degree level of completers; options include 'assc' (Associate's), 'bach' (Bachelor's), 'mast' (Master's), and 'doct' (Doctoral).",
     },
 
+    'cip' : {
+        'year' : 'Survey year. Note that the cohort being tracked is the cohort that started either six years back (for bachelor) or three years back (for associate).',
+        'cip' : 'CIP (Classification of Instructional Programs) identifier code.',
+        'cip_description' : 'CIP subject label (e.g., Geology).'
+
+    },
+
     'graduation' : {
        'id' : 'Institutional unique identifier ID; though UNITIDs can vary over time due to instutions splitting, this variable is generally consistent for an institution over time.', 
        'year' : 'Survey year. Note that the cohort being tracked is the cohort that started either six years back (for bachelor) or three years back (for associate).',
@@ -228,4 +225,65 @@ VARIABLES = {
        'gradrate_asnwomen' : 'Graduation rate for non-Hispanic Asian women (within 150 percent of normal time taken to graduate).' 
     }
     
+}
+
+VARIABLE_RENAME = {
+    'characteristics' : {
+        'unitid' : 'id', 'instnm' : 'name',
+          'addr' : 'address', 'city' : 'city', 'stabbr' : 'state', 'zip' : 'zipcode', 
+          'webaddr' : 'webaddress', 
+          'longitud' : 'longitude', 'latitude' : 'latitude'
+    },
+
+    'admissions' : {
+        'unitid' : 'id', 
+        'applcnm' : 'men_applied', 'applcnw' : 'women_applied', 
+        'admssnm' : 'men_admitted', 'admssnw' : 'women_admitted',
+        'satpct' : 'share_submit_sat', 'actpct' : 'share_submit_act',                                      
+        'satvr25' : 'sat_rw_25', 'satvr75' : 'sat_rw_75', 
+        'satmt25' : 'sat_math_25', 'satmt75' : 'sat_math_75', 
+        'actcm25' : 'act_comp_25', 'actcm75' : 'act_comp_75',
+        'acten25' : 'act_eng_25', 'acten75' : 'act_eng_75', 
+        'actmt25' : 'act_math_25', 'actmt75' : 'act_math_75',
+        'enrlftm' : 'men_ft_enrolled', 'enrlftw' : 'women_ft_enrolled',
+        'enrlptm' : 'men_pt_enrolled', 'enrlptw' : 'women_pt_enrolled',
+        'enrlm' : 'men_enrolled', 'enrlw' : 'women_enrolled',
+        'applcn' : 'tot_applied', 'admssn' : 'tot_admitted', 'enrlt' : 'tot_enrolled',
+        'acten50' : 'act_eng_50', 'actmt50' : 'act_math_50', 'actcm50' : 'act_comp_50',
+        'satvr50' : 'sat_rw_50', 'satmt50' : 'sat_math_50'
+    },
+
+    'enrollment' : {
+        'unitid' : 'id', 'line' : 'line', 'efrace15' : 'totmen', 'efrace16' : 'totwomen',
+        'eftotlm' : 'totmen', 'eftotlw' : 'totwomen', 'efwhitm' : 'wtmen', 'efwhitw' : 'wtwomen',
+        'efbkaam' : 'bkmen', 'efbkaaw' : 'bkwomen', 'efhispm' : 'hspmen', 'efhispw' : 'hspwomen', 
+        'efasiam' : 'asnmen', 'efasiaw' : 'asnwomen', 'eftotlw' : 'totwomen',
+        'efrace11' : 'wtmen', 'efrace12' : 'wtwomen', 'efrace03' : 'bkmen', 'efrace04' : 'bkwomen', 
+        'efrace09' : 'hspmen', 'efrace10' : 'hspwomen', 'efrace07' : 'asnmen', 'efrace08' : 'asnwomen'
+    },
+
+    'completion' : {
+        'unitid' : 'id', 'cipcode' : 'cip', 'awlevel' : 'awlevel',
+        'crace15' : 'totmen', 'crace16' : 'totwomen',
+        'ctotalm' : 'totmen', 'ctotalw' : 'totwomen'
+    },
+
+    'cip' : {
+        # nothing needed for now.
+    },
+
+    'graduation' : {
+        'grtotlm' : 'totmen', 'grtotlw' : 'totwomen', 
+        'grwhitm' : 'wtmen', 'grwhitw' : 'wtwomen',
+        'grbkaam' : 'bkmen', 'grbkaaw' : 'bkwomen', 
+        'grhispm' : 'hspmen', 'grhispw' : 'hspwomen', 
+        'grasiam' : 'asnmen', 'grasiaw' : 'asnwomen', 
+        'grrace15' : 'totmen', 'grrace16' : 'totwomen',
+        'grrace11' : 'wtmen', 'grrace12' : 'wtwomen', 
+        'grrace03' : 'bkmen', 'grrace04' : 'bkwomen', 
+        'grrace09' : 'hspmen', 'grrace10' : 'hspwomen', 
+        'grrace07' : 'asnmen', 'grrace08' : 'asnwomen',
+        'chrtstat' : 'chrtstat', 'section' : 'section', 
+        'cohort' : 'cohort', 'unitid' : 'id', 'grtype' : 'grtype'
+    }
 }
