@@ -1,0 +1,7 @@
+pandas
+numpy
+openpyxl
+xlrd
+requests
+bs4
+us

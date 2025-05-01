@@ -24,6 +24,10 @@ class IPDS(ABC):
     def get_available_vars(self):
         '''returns dict of available variables for a subject and their descriptions.'''
         return self.variable_dict
+    
+    def lookup_var(self, var=''):
+        '''returns variable description.'''
+        return self.variable_dict[var]
 
     def scrape(self, see_progress=False):
         '''downloads NCES IPEDS data to disk on specified years for a defined subject.
@@ -55,14 +59,27 @@ class Characteristics(IPDS):
           tuple of inclusive year integers (indicates a range), iterable of year integers (indicates group of individual years), or single year to pull data from.
         
           ex. year_range=(2002,2012)
-          
-        ### Example use
+
+        -----------------  
+        example use: 
         >>> import genpeds as ed
         >>> chars_2000 = ed.Characteristics(year_range=[2000,2005,2010]) # three years of data
         >>> chars_2000.get_available_years()
          (1984,2023) # available years for Characteristics data
         >>> chars_data = chars_2000.run() # returns Pandas dataframe
-        
+
+        ----------------
+        The Integrated Postsecondary Education Data System (IPEDS), ran by the National Center for Education Statistics (NCES), is a collection of surveys annually conducted. All postsecondary institutions that participate in federal student aid financial aid programs are required to participate in these surveys. IPEDS covers eight subjects: 
+        1. institutional characteristics
+        2. admissions
+        3. enrollment
+        4. degrees and certificates conferred
+        5. student persistence and success
+        6. institutional prices
+        7. student financial aid
+        8. institutional resources including human, resources, finance, and academic libraries
+
+        As of this version, `genpeds` only provides objects for the first five subject areas, as these areas provide data by gender and variables of interest like graduation rates and enrollment.
         '''
         super().__init__(year_range)
 
@@ -103,7 +120,29 @@ class Admissions(IPDS):
         :param year_range::
           tuple of inclusive year integers (indicates a range), iterable of year integers (indicates group of individual years), or single year to pull data from.
           
-          ex. year_range=(2002,2012)'''
+          ex. year_range=(2002,2012)
+          
+        -----------------  
+        example use: 
+        >>> import genpeds as ed
+        >>> adm_2010s = ed.Admissions(year_range=(2010,2019)) # ten years of data
+        >>> adm_2010s.get_available_years()
+         (2001,2023) # available years for Admissions data
+        >>> adm_data = adm_2010s.run() # returns Pandas dataframe
+
+        ----------------
+        The Integrated Postsecondary Education Data System (IPEDS), ran by the National Center for Education Statistics (NCES), is a collection of surveys annually conducted. All postsecondary institutions that participate in federal student aid financial aid programs are required to participate in these surveys. IPEDS covers eight subjects: 
+        1. institutional characteristics
+        2. admissions
+        3. enrollment
+        4. degrees and certificates conferred
+        5. student persistence and success
+        6. institutional prices
+        7. student financial aid
+        8. institutional resources including human, resources, finance, and academic libraries
+
+        As of this version, `genpeds` only provides objects for the first five subject areas, as these areas provide data by gender and variables of interest like graduation rates and enrollment.
+        '''
         super().__init__(year_range)
 
     def clean(self, admit_dir='admissionsdata', rm_disk=False):
@@ -150,6 +189,27 @@ class Enrollment(IPDS):
           tuple of inclusive year integers (indicates a range), iterable of year integers (indicates group of individual years), or single year to pull data from.
         
          ex. year_range=(2002,2012)
+
+        -----------------  
+        example use: 
+        >>> import genpeds as ed
+        >>> enroll_2022 = ed.Enrollment(year_range=2022) # one year of data
+        >>> enroll_2022.get_available_years()
+         (1984,2023) # available years for Enrollment data
+        >>> enroll_data = enroll_2022.run() # returns Pandas dataframe
+
+        ----------------
+        The Integrated Postsecondary Education Data System (IPEDS), ran by the National Center for Education Statistics (NCES), is a collection of surveys annually conducted. All postsecondary institutions that participate in federal student aid financial aid programs are required to participate in these surveys. IPEDS covers eight subjects: 
+        1. institutional characteristics
+        2. admissions
+        3. enrollment
+        4. degrees and certificates conferred
+        5. student persistence and success
+        6. institutional prices
+        7. student financial aid
+        8. institutional resources including human, resources, finance, and academic libraries
+
+        As of this version, `genpeds` only provides objects for the first five subject areas, as these areas provide data by gender and variables of interest like graduation rates and enrollment.
         '''
         super().__init__(year_range)
 
@@ -243,6 +303,27 @@ class Completion(IPDS):
           tuple of inclusive year integers (indicates a range), iterable of year integers (indicates group of individual years), or single year to pull data from.
         
          ex. year_range=(2002,2012)
+        
+        -----------------  
+        example use: 
+        >>> import genpeds as ed
+        >>> complete_2022 = ed.Completion(year_range=2022) # one year of data
+        >>> complete_2022.get_available_years()
+         (1984,2023) # available years for Enrollment data
+        >>> complete_data = complete_2022.run() # returns Pandas dataframe
+
+        ----------------
+        The Integrated Postsecondary Education Data System (IPEDS), ran by the National Center for Education Statistics (NCES), is a collection of surveys annually conducted. All postsecondary institutions that participate in federal student aid financial aid programs are required to participate in these surveys. IPEDS covers eight subjects: 
+        1. institutional characteristics
+        2. admissions
+        3. enrollment
+        4. degrees and certificates conferred
+        5. student persistence and success
+        6. institutional prices
+        7. student financial aid
+        8. institutional resources including human, resources, finance, and academic libraries
+
+        As of this version, `genpeds` only provides objects for the first five subject areas, as these areas provide data by gender and variables of interest like graduation rates and enrollment.
         '''
         super().__init__(year_range)
 
@@ -301,6 +382,27 @@ class Graduation(IPDS):
           tuple of inclusive year integers (indicates a range), iterable of year integers (indicates group of individual years), or single year to pull data from.
         
          ex. year_range=(2002,2012)
+        
+        -----------------  
+        example use: 
+        >>> import genpeds as ed
+        >>> grad_aughts = ed.Completion(year_range=(2000,2009)) # ten years of data
+        >>> grad_aughts.get_available_years()
+         (2000,2023) # available years for Enrollment data
+        >>> grad_data = grad_aughts.run() # returns Pandas dataframe
+
+        ----------------
+        The Integrated Postsecondary Education Data System (IPEDS), ran by the National Center for Education Statistics (NCES), is a collection of surveys annually conducted. All postsecondary institutions that participate in federal student aid financial aid programs are required to participate in these surveys. IPEDS covers eight subjects: 
+        1. institutional characteristics
+        2. admissions
+        3. enrollment
+        4. degrees and certificates conferred
+        5. student persistence and success
+        6. institutional prices
+        7. student financial aid
+        8. institutional resources including human, resources, finance, and academic libraries
+
+        As of this version, `genpeds` only provides objects for the first five subject areas, as these areas provide data by gender and variables of interest like graduation rates and enrollment.
         '''
         super().__init__(year_range)
 
