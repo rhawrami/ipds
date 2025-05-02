@@ -32,7 +32,7 @@ class IPDS(ABC):
     def scrape(self, see_progress=False):
         '''downloads NCES IPEDS data to disk on specified years for a defined subject.
         
-        :param view_progress::
+        :param see_progress::
             (bool) prints completion statement for extraction of each year's data. If False, no messages printed.
         '''
         scrape_ipeds_data(subject=self.subject, year_range=self.year_range, see_progress=see_progress)
@@ -61,14 +61,16 @@ class Characteristics(IPDS):
           ex. year_range=(2002,2012)
 
         -----------------  
-        example use: 
+        <h3>Example Use:</h3>
         >>> import genpeds as ed
         >>> chars_2000 = ed.Characteristics(year_range=[2000,2005,2010]) # three years of data
         >>> chars_2000.get_available_years()
          (1984,2023) # available years for Characteristics data
         >>> chars_data = chars_2000.run() # returns Pandas dataframe
 
+        
         ----------------
+        <h3>IPEDS</h3>
         The Integrated Postsecondary Education Data System (IPEDS), ran by the National Center for Education Statistics (NCES), is a collection of surveys annually conducted. All postsecondary institutions that participate in federal student aid financial aid programs are required to participate in these surveys. IPEDS covers eight subjects: 
         1. institutional characteristics
         2. admissions
@@ -123,7 +125,7 @@ class Admissions(IPDS):
           ex. year_range=(2002,2012)
           
         -----------------  
-        example use: 
+        <h3>Example Use:</h3>
         >>> import genpeds as ed
         >>> adm_2010s = ed.Admissions(year_range=(2010,2019)) # ten years of data
         >>> adm_2010s.get_available_years()
@@ -131,6 +133,7 @@ class Admissions(IPDS):
         >>> adm_data = adm_2010s.run() # returns Pandas dataframe
 
         ----------------
+        <h3>IPEDS</h3>
         The Integrated Postsecondary Education Data System (IPEDS), ran by the National Center for Education Statistics (NCES), is a collection of surveys annually conducted. All postsecondary institutions that participate in federal student aid financial aid programs are required to participate in these surveys. IPEDS covers eight subjects: 
         1. institutional characteristics
         2. admissions
@@ -191,7 +194,7 @@ class Enrollment(IPDS):
          ex. year_range=(2002,2012)
 
         -----------------  
-        example use: 
+        <h3>Example Use:</h3>
         >>> import genpeds as ed
         >>> enroll_2022 = ed.Enrollment(year_range=2022) # one year of data
         >>> enroll_2022.get_available_years()
@@ -199,6 +202,7 @@ class Enrollment(IPDS):
         >>> enroll_data = enroll_2022.run() # returns Pandas dataframe
 
         ----------------
+        <h3>IPEDS</h3>
         The Integrated Postsecondary Education Data System (IPEDS), ran by the National Center for Education Statistics (NCES), is a collection of surveys annually conducted. All postsecondary institutions that participate in federal student aid financial aid programs are required to participate in these surveys. IPEDS covers eight subjects: 
         1. institutional characteristics
         2. admissions
@@ -305,7 +309,7 @@ class Completion(IPDS):
          ex. year_range=(2002,2012)
         
         -----------------  
-        example use: 
+        <h3>Example Use:</h3>
         >>> import genpeds as ed
         >>> complete_2022 = ed.Completion(year_range=2022) # one year of data
         >>> complete_2022.get_available_years()
@@ -313,6 +317,7 @@ class Completion(IPDS):
         >>> complete_data = complete_2022.run() # returns Pandas dataframe
 
         ----------------
+        <h3>IPEDS</h3>
         The Integrated Postsecondary Education Data System (IPEDS), ran by the National Center for Education Statistics (NCES), is a collection of surveys annually conducted. All postsecondary institutions that participate in federal student aid financial aid programs are required to participate in these surveys. IPEDS covers eight subjects: 
         1. institutional characteristics
         2. admissions
@@ -384,7 +389,7 @@ class Graduation(IPDS):
          ex. year_range=(2002,2012)
         
         -----------------  
-        example use: 
+        <h3>Example Use:</h3>
         >>> import genpeds as ed
         >>> grad_aughts = ed.Completion(year_range=(2000,2009)) # ten years of data
         >>> grad_aughts.get_available_years()
@@ -392,6 +397,7 @@ class Graduation(IPDS):
         >>> grad_data = grad_aughts.run() # returns Pandas dataframe
 
         ----------------
+        <h3>IPEDS</h3>
         The Integrated Postsecondary Education Data System (IPEDS), ran by the National Center for Education Statistics (NCES), is a collection of surveys annually conducted. All postsecondary institutions that participate in federal student aid financial aid programs are required to participate in these surveys. IPEDS covers eight subjects: 
         1. institutional characteristics
         2. admissions

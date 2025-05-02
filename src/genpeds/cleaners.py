@@ -203,7 +203,7 @@ def clean_completion(completion_dir = 'completiondata', level = 'bach'):
         (lambda l,y: l == 'bach', 'awlevel == 5'),
         (lambda l,y: l == 'mast', 'awlevel == 7'),
         (lambda l,y: (l == 'doct') and (y < 2010), 'awlevel == 9'),
-        (lambda l,y: (l == 'doct') and (y < 2010), 'awlevel >= 17 and awlevel <= 19')
+        (lambda l,y: (l == 'doct') and (y >= 2010), 'awlevel >= 17 and awlevel <= 19')
     ]
     
     master_df = pd.DataFrame()
