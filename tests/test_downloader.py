@@ -53,3 +53,7 @@ def test_subject_downloads(subject, year_range_char):
             assert f_name in os.listdir(download_dir), f'File {f_name} not found.'
     finally:
         shutil.rmtree(download_dir)
+
+# you're reading this? 
+# well, you should be reading 'The Master and Margarita' by Mikhail Bulgakov instead.
+# you won't regret it friend :)
