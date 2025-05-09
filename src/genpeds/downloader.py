@@ -50,7 +50,7 @@ def download_a_file(subject, year):
     if '404 - File or directory not found' in r.text:
         return f"Year {year}: 404 - File not found"
     
-    zipped_file = f'{relevant_dir}/{relevant_prefix}_{year}.zip'
+    zipped_file = os.path.join(relevant_dir, f'{relevant_prefix}_{year}.zip')
     open(zipped_file, 'wb').write(r.content)
     
     with zipfile.ZipFile(zipped_file, 'r') as zfile:
@@ -60,7 +60,9 @@ def download_a_file(subject, year):
                 try:
                     zfile.extract(file_to_extract + ext, relevant_dir)
                     # remove & remove zipped file
-                    os.rename(f'{relevant_dir}/{file_to_extract}{ext}', f'{relevant_dir}/cipcodes_{year}' + ext)
+                    old_name_file = os.path.join(relevant_dir, f'{file_to_extract}{ext}')
+                    new_name_file = os.path.join(relevant_dir, f'cipcodes_{year}{ext}')
+                    os.rename(old_name_file, new_name_file)
                     os.remove(zipped_file)
                     break
                 except KeyError:
@@ -69,7 +71,9 @@ def download_a_file(subject, year):
             file_to_extract = endpoint.split('/')[-1].replace('.zip', '').lower() + '.csv'
             zfile.extract(file_to_extract, relevant_dir)
             # remove & remove zipped file
-            os.rename(f'{relevant_dir}/{file_to_extract}', f'{relevant_dir}/{relevant_prefix}_{year}.csv')
+            old_name_file = os.path.join(relevant_dir, file_to_extract)
+            new_name_file = os.path.join(relevant_dir, f'{relevant_prefix}_{year}.csv')
+            os.rename(old_name_file, new_name_file)
             os.remove(zipped_file)
 
     return(f'IPEDS {subject.title()} ({year}) successfully downloaded and extracted')

@@ -179,8 +179,20 @@ VARIABLE_DICT = {
         'cip' : 'CIP (Classification of Instructional Programs) code for a subject in a given year.', 
         'totmen' : 'Total number of male completers within a CIP subject.', 
         'totwomen' : 'Total number of female completers within a CIP subject.', 
+        'wtmen' : 'Total number of non-Hispanic White men completers within a CIP subject.; this includes both part-time and full-time enrollment.', 
+        'wtwomen' : 'Total number of non-Hispanic White women completers within a CIP subject.; this includes both part-time and full-time enrollment.', 
+        'bkmen' : 'Total number of non-Hispanic Black men completers within a CIP subject.; this includes both part-time and full-time enrollment.',
+        'bkwomen' : 'Total number of non-Hispanic Black women completers within a CIP subject.; this includes both part-time and full-time enrollment.',
+        'hspmen' : 'Total number of Hispanic men (of any race) completers within a CIP subject.; this includes both part-time and full-time enrollment.', 
+        'hspwomen' : 'Total number of Hispanic women (of any race) completers within a CIP subject.; this includes both part-time and full-time enrollment.', 
+        'asnmen' : 'Total number of non-Hispanic Asian men completers within a CIP subject.; this includes both part-time and full-time enrollment.', 
+        'asnwomen' : 'Total number of non-Hispanic Asian women completers within a CIP subject.; this includes both part-time and full-time enrollment.', 
+        'totwt_share' : "Non-Hispanic White share of total (male and female) completers within a CIP subject.",   
+        'totbk_share' : "Non-Hispanic Black share of total (male and female) completers within a CIP subject.", 
+        'tothsp_share' : "Hispanic share of total (male and female) completers within a CIP subject.",
+        'totasn_share' : "Non-Hispanic Asian share of total (male and female) completers within a CIP subject.",
         'totmen_share' : 'Male share of total (male and female) completers within a CIP subject.', 
-        'deglevel' : "Degree level of completers; options include 'assc' (Associate's), 'bach' (Bachelor's), 'mast' (Master's), and 'doct' (Doctoral).",
+        'deglevel' : "Degree level of completers; options include 'assc' (Associate's), 'bach' (Bachelor's), 'mast' (Master's), and 'doct' (Doctoral)."
     },
 
     'cip' : {
@@ -266,7 +278,11 @@ VARIABLE_RENAME = {
     'completion' : {
         'unitid' : 'id', 'cipcode' : 'cip', 'awlevel' : 'awlevel',
         'crace15' : 'totmen', 'crace16' : 'totwomen',
-        'ctotalm' : 'totmen', 'ctotalw' : 'totwomen'
+        'ctotalm' : 'totmen', 'ctotalw' : 'totwomen', 
+        'cwhitm' : 'wtmen', 'cwhitw' : 'wtwomen', 'cbkaam' : 'bkmen', 'cbkaaw' : 'bkwomen', 
+        'chispm' : 'hspmen', 'chispw' : 'hspwomen', 'casiam' : 'asnmen', 'casiaw' : 'asnwomen',
+        'crace11' : 'wtmen', 'crace12' : 'wtwomen', 'crace03' : 'bkmen', 'crace04' : 'bkwomen', 
+        'crace09' : 'hspmen', 'crace10' : 'hspwomen', 'crace07' : 'asnmen', 'crace08' : 'asnwomen'
     },
 
     'cip' : {

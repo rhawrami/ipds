@@ -25,7 +25,7 @@ def clean_characteristics(characteristics_dir = 'characteristicsdata'):
         'stabbr' : str, 'zip' : str, 'webaddr' : str, 'longitud' : str, 'latitude' : str
     }
     for file in sorted_files:
-        file_path = f'{characteristics_dir}/{file}'
+        file_path = os.path.join(characteristics_dir, file)
         df = pd.read_csv(file_path, dtype=dtypes, encoding_errors='replace', low_memory=False)
         df = df.rename(str.lower, axis='columns')
         year_num = re.split(r'_|\.', f'{file}')[1]
@@ -62,7 +62,7 @@ def clean_admissions(admissions_dir = 'admissionsdata'):
     master_df = pd.DataFrame()
     
     for file in sorted_files:
-        file_path = f'{admissions_dir}/{file}'
+        file_path = os.path.join(admissions_dir, file)
         df = pd.read_csv(file_path, dtype=str) # read in df
         df = df.rename(str.lower, axis='columns') # some df's have all uppercase, some have all lowercase
         df.columns = df.columns.str.strip() # some column names have right spaces
@@ -136,12 +136,19 @@ def clean_enrollment(enrollment_dir = 'enrollmentdata', student_level = 'undergr
     master_df = pd.DataFrame()
 
     for file in sorted_files:
-        file_path = f'{enrollment_dir}/{file}'
+        file_path = os.path.join(enrollment_dir, file)
         df = pd.read_csv(file_path, dtype=str) # read in df
         df = df.rename(str.lower, axis='columns') # some df's have all uppercase, some have all lowercase
         year_num = re.split(r'_|\.', f'{file}')[1]
 
-        cols_to_filter = [col for col in rename_dict.keys() if col in df.columns] # cols to filter per year
+        if all(col in df.columns for col in ['efrace10', 'eftotlm']):
+            cols_to_filter = [col for col in rename_dict.keys() if 
+                              (col in df.columns) and ('efrace' not in col)] # annoying thing with duplicate cols in 
+                                                                                # some years
+        else:
+            cols_to_filter = [col for col in rename_dict.keys() if col in df.columns]
+            
+
         df_filtered = df.reindex(columns=cols_to_filter)
         df_filtered = df_filtered.rename(columns=rename_dict) # rename cols
 
@@ -150,7 +157,7 @@ def clean_enrollment(enrollment_dir = 'enrollmentdata', student_level = 'undergr
                 df_filtered[col] = df_filtered[col].astype(str).str.strip() # id identifier
             else:
                 df_filtered[col] = pd.to_numeric(df_filtered[col], errors='coerce')
-        
+
         if student_level == 'undergrad':
             if int(year_num) < 1986:
                 student_query = 'line == 1 or line == 15' # captures total full-time and total part-time undergrads, respectively
@@ -209,12 +216,18 @@ def clean_completion(completion_dir = 'completiondata', level = 'bach'):
     master_df = pd.DataFrame()
 
     for file in sorted_files:
-        file_path = f'{completion_dir}/{file}'
+        file_path = os.path.join(completion_dir, file)
         df = pd.read_csv(file_path, dtype=str) # read in df
         df = df.rename(str.lower, axis='columns') # some df's have all uppercase, some have all lowercase
         year_num = re.split(r'_|\.', f'{file}')[1]
         
-        cols_to_filter = [col for col in rename_dict.keys() if col in df]
+        if all(col in df.columns for col in ['crace10', 'ctotalm']):
+            cols_to_filter = [col for col in rename_dict.keys() if 
+                              (col in df.columns) and ('crace' not in col)] # annoying thing with duplicate cols in 
+                                                                                # some years
+        else:
+            cols_to_filter = [col for col in rename_dict.keys() if col in df.columns]
+
         df_filtered = df.reindex(columns=cols_to_filter)
         df_filtered = df_filtered.rename(columns=rename_dict)
         for col in df_filtered:
@@ -229,8 +242,14 @@ def clean_completion(completion_dir = 'completiondata', level = 'bach'):
             raise ValueError("level must be 'assc', 'bach', 'mast' or 'doct'") 
         
         completions = df_filtered.query(level_query)
-        completions = completions.groupby(['id', 'cip'])[['totmen', 'totwomen']].sum().reset_index()
+        race_cols = [col for col in completions.columns if 'men' in col] # race columns to group
+        completions = completions.groupby(['id', 'cip'])[race_cols].sum().reset_index()
+
         completions = completions.eval('totmen_share = totmen / (totmen + totwomen) * 100') # maleshare within each major
+        if 'wtmen' in completions.columns:
+            for attr in ['wt', 'bk', 'hsp', 'asn']:
+                eval_str = f'tot{attr}_share = ({attr}men + {attr}women) / (totmen + totwomen) * 100' # race share breakdowns
+                completions = completions.eval(eval_str)
         
         completions['deglevel'] = level # adds level identifier
         completions['year'] = int(year_num) # adds year identifier
@@ -273,7 +292,7 @@ def clean_cip(cip_codes_dir = 'cipdata'):
     master_df = pd.DataFrame()
 
     for file in sorted_files:
-        file_path = f'{cip_codes_dir}/{file}'
+        file_path = os.path.join(cip_codes_dir, file)
         year_num = re.split(r'_|\.', f'{file}')[1]
         ext = re.split(r'_|\.', f'{file}')[2]
         if ext == 'html':
@@ -304,7 +323,7 @@ def clean_graduation(graduation_dir = 'graduationdata', deg_level='bach'):
     master_df = pd.DataFrame()
 
     for file in sorted_files:
-        file_path = f'{graduation_dir}/{file}'
+        file_path = os.path.join(graduation_dir, file)
         df = pd.read_csv(file_path, dtype=str) # read in df
         df = df.rename(str.lower, axis='columns') # some df's have all uppercase, some have all lowercase
         year_num = re.split(r'_|\.', f'{file}')[1]

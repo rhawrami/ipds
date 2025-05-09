@@ -4,7 +4,7 @@ A Python package for working with NCES IPEDS data, particularly for studying tre
 The Integrated Postsecondary Education Data System ([IPEDS](https://nces.ed.gov/ipeds/about-ipeds)), ran by the National Center for Education Statistics ([NCES](https://nces.ed.gov/)), is a collection of surveys annually conducted on a range of subjects, from finances and admissions to enrollment and graduation. All postsecondary institutions that participate in federal student aid financial aid programs are required to participate in these surveys.
 
 Per [IPEDS](https://nces.ed.gov/ipeds/about-ipeds):
-> "IPEDS provides basic data needed to describe — and analyze trends in — postsecondary education in the United States, in terms of the numbers of students enrolled, staff employed, dollars expended, and degrees earned.Congress, federal agencies, state governments, education providers, professional associations, private businesses, media, students and parents, and others rely on IPEDS data for this basic information on postsecondary institutions." 
+> "IPEDS provides basic data needed to describe — and analyze trends in — postsecondary education in the United States, in terms of the numbers of students enrolled, staff employed, dollars expended, and degrees earned. Congress, federal agencies, state governments, education providers, professional associations, private businesses, media, students and parents, and others rely on IPEDS data for this basic information on postsecondary institutions." 
 
 `genpeds` provides a Python API for requesting, and cleaning IPEDS data for a host of subject, particularly for studying college trends by gender.
 

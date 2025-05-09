@@ -1,3 +1,4 @@
+dist/
 __pycache__/
 .pytest_cache/
 venv/
@@ -8,3 +9,4 @@ graduationdata/
 characteristicsdata/
 cipdata/
 admissionsdata/
+TODO.txt
