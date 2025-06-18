@@ -9,5 +9,6 @@ graduationdata/
 characteristicsdata/
 cipdata/
 admissionsdata/
-notebooks/.env
+notebooks/
+.env
 TODO.txt

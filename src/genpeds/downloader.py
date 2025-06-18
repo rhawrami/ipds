@@ -5,6 +5,7 @@ import requests
 import zipfile
 import os
 import warnings
+import re
 from genpeds.config import DATASETS
 
 def get_file_endpoint(subject, year):
@@ -105,7 +106,7 @@ def scrape_ipeds_data(subject='characteristics', year_range = None, see_progress
     '''
     subject = subject.lower()
     relevant_dir = DATASETS[subject]['dir']
-    os.makedirs(relevant_dir, exist_ok=True) # create subject directory, where unzipped files will be stored
+    relevant_prefix = DATASETS[subject]['file_prefix'] # file subject prefix
     # Determine the years to download
     if not year_range:
         if subject == 'graduation':
@@ -128,6 +129,18 @@ def scrape_ipeds_data(subject='characteristics', year_range = None, see_progress
             iter_range = [start]  # integer becomes one-element list
         else:
             raise ValueError('Please enter a tuple range, list of integers, or a single integer')
+    
+    if os.path.isdir(relevant_dir): # so we don't need to redownload if it isn't necessary
+        iter_range2 = []
+        stripped_list = [re.sub(r'\.csv|\.html|\.xlsx|\.xlsx','',ff) 
+                             for ff in sorted(os.listdir(relevant_dir))]
+        for yr in iter_range:
+            if f'{relevant_prefix}_{yr}' not in stripped_list:
+                iter_range2.append(yr)
+        iter_range = iter_range2
+    else:
+        os.makedirs(relevant_dir, exist_ok=True) # create subject directory, where unzipped files will be stored
+
     # multithread to speed up the process
     with concurrent.futures.ThreadPoolExecutor(max_workers=5) as exec:
         future_to_year = {exec.submit(download_a_file, subject, year): year for year in iter_range}

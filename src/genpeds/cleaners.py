@@ -8,7 +8,7 @@ import us
 
 from genpeds.config import VARIABLE_RENAME
 
-def clean_characteristics(characteristics_dir = 'characteristicsdata'):
+def clean_characteristics(characteristics_dir = 'characteristicsdata') -> pd.DataFrame:
     '''cleans institution characteristics data and returns complete characteristics data
 
     :characteristics_dir:        directory where raw enrollment data is located
@@ -17,6 +17,7 @@ def clean_characteristics(characteristics_dir = 'characteristicsdata'):
     sorted_files = sorted(os.listdir(characteristics_dir))
     rename_dict = VARIABLE_RENAME['characteristics']
     state_mappings = us.states.mapping('abbr', 'name') # get abbr -> names for states
+    state_mappings['DC'] = 'District of Columbia' # add Washington D.C. to state mapping
 
     master_df = pd.DataFrame()
 
@@ -50,7 +51,7 @@ def clean_characteristics(characteristics_dir = 'characteristicsdata'):
     return master_df
 
 
-def clean_admissions(admissions_dir = 'admissionsdata'):
+def clean_admissions(admissions_dir = 'admissionsdata') -> pd.DataFrame:
     '''cleans yearly admissions data and returns complete admissions data
     
     :admissions_dir:        directory where raw admissions data is located
@@ -113,7 +114,7 @@ def clean_admissions(admissions_dir = 'admissionsdata'):
     return admissions_df
 
 
-def clean_enrollment(enrollment_dir = 'enrollmentdata', student_level = 'undergrad'):
+def clean_enrollment(enrollment_dir = 'enrollmentdata', student_level = 'undergrad') -> pd.DataFrame:
     '''cleans yearly enrollment data and returns complete student enrollment data
 
     :enrollment_dir:        directory where raw enrollment data is located
@@ -128,8 +129,7 @@ def clean_enrollment(enrollment_dir = 'enrollmentdata', student_level = 'undergr
         (lambda y: (y == 1986) or (y in range(1990,1999)), 'line in [14,28,9,10,23,24]'),
         (lambda y: y in [1987,1988,1989], 'line in [14,28]'),
         (lambda y: y == 1999, 'line in [32,52,16]'),
-        (lambda y: (y in range(2000,2002)) or (y in range(2004,2009)), 'line in [11,25,9,23]'),
-        (lambda y:  y in range(2002,2004), 'line in [12,26]'),
+        (lambda y:  y in range(2000,2009), 'line in [11,25,9,23]'),
         (lambda y: y in range(2009,2024), 'line in [11,25]')
     ]
     
@@ -195,7 +195,7 @@ def clean_enrollment(enrollment_dir = 'enrollmentdata', student_level = 'undergr
     return master_df
 
 
-def clean_completion(completion_dir = 'completiondata', level = 'bach'):
+def clean_completion(completion_dir = 'completiondata', level = 'bach') -> pd.DataFrame:
     '''cleans yearly completion data and returns complete completions data
 
     :completion_dir:        directory where raw completion data is located
@@ -253,6 +253,7 @@ def clean_completion(completion_dir = 'completiondata', level = 'bach'):
         
         completions['deglevel'] = level # adds level identifier
         completions['year'] = int(year_num) # adds year identifier
+        completions['cip'] = completions['cip'].astype(str).str.strip()
         
         master_df = pd.concat([master_df, completions], ignore_index=True)
 
@@ -281,7 +282,7 @@ def clean_cip_html(file_path):
         return label_dict
 
 
-def clean_cip(cip_codes_dir = 'cipdata'):
+def clean_cip(cip_codes_dir = 'cipdata') -> pd.DataFrame:
     '''cleans yearly CIP data and returns full dataframe
 
     :cip_codes_dir: directory where raw CIP data is located
@@ -306,12 +307,13 @@ def clean_cip(cip_codes_dir = 'cipdata'):
         df['year'] = int(year_num) # year identifier
         
         master_df = pd.concat([master_df, df], ignore_index=True)
+        master_df['cip'] = master_df['cip'].astype(str).str.strip() # strip spaces
         master_df['cip_description'] = master_df['cip_description'].str.title().replace(r'^(\d+)\s-\s', '', regex=True)
 
     return master_df
 
 
-def clean_graduation(graduation_dir = 'graduationdata', deg_level='bach'):
+def clean_graduation(graduation_dir = 'graduationdata', deg_level='bach') -> pd.DataFrame:
     '''cleans yearly graduation data and returns complete graduation data
 
     :graduation_dir:        directory where raw completion data is located
