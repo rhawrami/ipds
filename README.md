@@ -6,7 +6,7 @@ The Integrated Postsecondary Education Data System ([IPEDS](https://nces.ed.gov/
 Per [IPEDS](https://nces.ed.gov/ipeds/about-ipeds):
 > "IPEDS provides basic data needed to describe — and analyze trends in — postsecondary education in the United States, in terms of the numbers of students enrolled, staff employed, dollars expended, and degrees earned. Congress, federal agencies, state governments, education providers, professional associations, private businesses, media, students and parents, and others rely on IPEDS data for this basic information on postsecondary institutions." 
 
-`genpeds` provides a Python API for requesting, and cleaning IPEDS data for a host of subject, particularly for studying college trends by gender.
+`genpeds`, or the **[gen]dered [p]ostsecondary [education] [d]ata [s]atrap**, provides a Python API for requesting, and cleaning IPEDS data for a host of subjects, particularly for studying college trends by gender.
 
 ## Usage
 
@@ -98,7 +98,7 @@ IPEDS [covers](https://nces.ed.gov/ipeds/about-ipeds) eight main subjects:
 7. Student Financial Aid
 8. institutional Resources including Human, resources, Finance, and Academic Libraries
 
-`genpeds` currently supports the first five subjects:
+`genpeds` currently ***supports the first five*** subjects:
 
 - **Characteristics** (e.g., school name, address, longitude/latitude, etc.) (available 1984-2023)
 ```python
@@ -108,6 +108,8 @@ scrape_ipeds_data(subject='characteristics',
                   year_range=(1984,2023))
 
 chardat = Characteristics(year_range=(1984,2023))
+
+char_df = chardat.run(rm_disk=False)
 ```
 - **Admissions** (e.g., SAT/ACT scores, admit rates by gender, etc.) (available 2001-2023)
 ```python
@@ -117,6 +119,9 @@ scrape_ipeds_data(subject='admissions',
                   year_range=(2001,2023))
 
 admdat = Admissions(year_range=(2001,2023))
+
+adm_df = admdat.run(merge_with_char=True,
+                    rm_disk=True)
 ```
 - **Enrollment** (e.g., enrollment by race/gender/level, etc.) (available 1984-2023)
 ```python
@@ -126,6 +131,9 @@ scrape_ipeds_data(subject='enrollment',
                   year_range=(1984,2023))
 
 enrolldat = Enrollment(year_range=(1984,2023))
+
+enroll_df = enrolldat.run(merge_with_char=False,
+                          student_level='undergrad')
 ```
 - **Completion** (e.g., degree completion by race/gender/subject/level, etc.) (available 1984-2023)
 ```python
@@ -135,6 +143,11 @@ scrape_ipeds_data(subject='completion',
                   year_range=(1984,2023))
 
 completedat = Completion(year_range=(1984,2023))
+
+complete_df = completedat.run(degree_level='doct',
+                              get_cip_codes=True,
+                              merge_with_char=True,
+                              rm_disk=False)
 ```
 - **Graduation** (e.g., graduation rate by race/gender/level, etc.) (available 2000-2023)
 ```python
